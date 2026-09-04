@@ -23,7 +23,7 @@ public class ProfileController {
     }
 
     @PatchMapping("/me")
-    public ResponseEntity<ProfileUpdateRequestDTO> updateUserProfile(@Valid @RequestBody ProfileUpdateRequestDTO dto){
+    public ResponseEntity<CommonApiResponse<ProfileResponseDTO>> updateUserProfile(@Valid @RequestBody ProfileUpdateRequestDTO dto){
         return ResponseEntity.ok(profileService.updateUserProfile(dto));
     }
 

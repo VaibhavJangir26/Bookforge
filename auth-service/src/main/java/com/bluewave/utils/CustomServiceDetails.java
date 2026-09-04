@@ -5,13 +5,20 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import java.util.Collection;
-import java.util.List;
+import java.util.stream.Collectors;
 
 public record CustomServiceDetails(Users users) implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        if (users == null || users.getRoles() == null) {
+            return java.util.Collections.emptyList();
+        }
+        return users.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getAppRole().name()))
+                .collect(Collectors.toList());
     }
 
     @Override

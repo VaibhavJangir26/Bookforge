@@ -32,6 +32,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, null);
     }
 
+    @ExceptionHandler(TooManyRequestException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleTooManyRequest(TooManyRequestException ex) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.TOO_MANY_REQUESTS, null);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<CommonApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
         return buildErrorResponse(ex.getMessage(), HttpStatus.NOT_FOUND, null);

@@ -3,7 +3,9 @@ package com.bluewave.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import lombok.Data;
 
+@Data
 public class OtpVerfiyRequestDTO {
     @Email(message = "invalid email format")
     @NotBlank(message = "email is required")

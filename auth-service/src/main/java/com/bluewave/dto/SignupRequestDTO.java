@@ -1,8 +1,8 @@
 package com.bluewave.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -16,7 +16,7 @@ public class SignupRequestDTO {
     private String email;
 
     @NotBlank(message = "password is required")
-    @Min(message = "minimum 6 digit password is required", value = 6)
+    @Size(min = 6, message = "password must be at least 6 characters")
     private String password;
 
 }

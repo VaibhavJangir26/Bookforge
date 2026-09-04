@@ -32,11 +32,11 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${JWT_SECRET_KEY}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http){
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth->auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
@@ -61,13 +61,13 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider(CustomUserDetailsService detailsService){
-        DaoAuthenticationProvider authenticationProvider=new DaoAuthenticationProvider(detailsService);
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(detailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder());
         return authenticationProvider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration){
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
 

@@ -20,8 +20,9 @@ public class Roles {
     private String id;
 
     @Enumerated(EnumType.STRING)
+    @Column(unique = true, nullable = false)
     private AppRole appRole;
 
-    @ManyToMany(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
-    private Set<Users> users=new HashSet<>();
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+    private Set<Users> users = new HashSet<>();
 }
