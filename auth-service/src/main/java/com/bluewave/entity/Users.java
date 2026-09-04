@@ -1,9 +1,7 @@
 package com.bluewave.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -15,6 +13,8 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@ToString(exclude = {"roles","profile"})
+@EqualsAndHashCode(exclude = {"roles","profile"})
 public class Users {
 
     @Id
