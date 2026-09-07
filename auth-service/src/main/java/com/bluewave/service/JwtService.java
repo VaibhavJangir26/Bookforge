@@ -1,6 +1,7 @@
-package com.bluewave.utils;
+package com.bluewave.service;
 
 import com.bluewave.entity.Users;
+import com.bluewave.utils.SecurityPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -75,9 +76,9 @@ public class JwtService {
     public boolean isTokenValid(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            return !claims.getExpiration().before(new Date());
+            return claims.getExpiration().before(new Date());
         } catch (Exception e) {
-            return false;
+            return true;
         }
     }
 

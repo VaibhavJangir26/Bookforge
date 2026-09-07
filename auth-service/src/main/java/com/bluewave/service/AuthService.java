@@ -9,7 +9,6 @@ import com.bluewave.exception.ResourceConflictException;
 import com.bluewave.exception.ResourceNotFoundException;
 import com.bluewave.repo.RoleRepo;
 import com.bluewave.repo.UsersRepo;
-import com.bluewave.utils.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -200,7 +199,7 @@ public class AuthService {
         String incomingRefreshToken = dto.getRefreshToken();
 
         // 1. Validate JWT cryptographic signature and expiration
-        if (!jwtService.isTokenValid(incomingRefreshToken)) {
+        if (jwtService.isTokenValid(incomingRefreshToken)) {
             throw new BadCredentialsException("Refresh token is invalid or expired.");
         }
 
@@ -260,7 +259,7 @@ public class AuthService {
         String refreshToken = dto.getRefreshToken();
 
         // 1. Validate refresh token structure and signature
-        if (!jwtService.isTokenValid(refreshToken)) {
+        if (jwtService.isTokenValid(refreshToken)) {
             throw new BadCredentialsException("Invalid or expired refresh token.");
         }
 

@@ -1,4 +1,4 @@
-package com.bluewave.utils;
+package com.bluewave.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
