@@ -1,7 +1,6 @@
 package com.bluewave.utils;
 
 import com.bluewave.entity.Users;
-import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -22,7 +21,7 @@ public record CustomServiceDetails(Users users) implements UserDetails {
     }
 
     @Override
-    public @Nullable String getPassword() {
+    public String getPassword() {
         return users.getPassword();
     }
 

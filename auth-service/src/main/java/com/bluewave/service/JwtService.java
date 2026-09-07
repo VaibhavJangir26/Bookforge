@@ -41,24 +41,34 @@ public class JwtService {
                 .getPayload();
     }
 
-    public String generateAccessToken(Authentication authentication){
-        String username=authentication.getName();
-        Users users=securityPrincipal.getUserByUsername(username);
-        List<String> roles=users.getRoles().stream().map(r->r.getAppRole().name()).toList();
+    public String generateAccessToken(Authentication authentication) {
+        return generateAccessToken(authentication, null);
+    }
 
-        Instant now=Instant.now();
+    public String generateAccessToken(Authentication authentication, String sessionId) {
+        String username = authentication.getName();
+        Users users = securityPrincipal.getUserByUsername(username);
+        List<String> roles = users.getRoles().stream().map(r -> r.getAppRole().name()).toList();
 
-        return Jwts.builder()
+        Instant now = Instant.now();
+
+        var builder = Jwts.builder()
+                .claim("userId", users.getId())
                 .claim("roles", roles)
                 .subject(username)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(15, ChronoUnit.MINUTES)))
-                .signWith(getSignedKey())
-                .compact();
+                .signWith(getSignedKey());
+
+        if (sessionId != null && !sessionId.isBlank()) {
+            builder.claim("sessionId", sessionId);
+        }
+
+        return builder.compact();
     }
 
-    public String generateRefreshToken(String username,String sessionId){
-        Instant now=Instant.now();
+    public String generateRefreshToken(String username, String sessionId) {
+        Instant now = Instant.now();
         return Jwts.builder()
                 .subject(username)
                 .claim("sessionId", sessionId)
@@ -76,9 +86,9 @@ public class JwtService {
     public boolean isTokenValid(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            return claims.getExpiration().before(new Date());
+            return claims.getExpiration() != null && claims.getExpiration().after(new Date());
         } catch (Exception e) {
-            return true;
+            return false;
         }
     }
 
@@ -95,5 +105,4 @@ public class JwtService {
         }
         return roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
     }
-    
 }

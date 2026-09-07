@@ -123,7 +123,7 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(savedUser.getUsername(), null, authorities);
 
         // 7. Generate JWT Access Token and Refresh Token containing the sessionId claim
-        String accessToken = jwtService.generateAccessToken(authenticationToken);
+        String accessToken = jwtService.generateAccessToken(authenticationToken, sessionId);
         String refreshToken = jwtService.generateRefreshToken(username, sessionId);
 
         // 8. Store Refresh Token in Redis: key = "user:<username>:<sessionId>" with 7-day TTL
@@ -170,7 +170,7 @@ public class AuthService {
         String sessionId = UUID.randomUUID().toString();
 
         // 5. Generate Access Token and Refresh Token (embedding the sessionId inside the Refresh JWT)
-        String accessToken = jwtService.generateAccessToken(authResult);
+        String accessToken = jwtService.generateAccessToken(authResult, sessionId);
         String refreshToken = jwtService.generateRefreshToken(authenticatedUsername, sessionId);
 
         // 6. Store Refresh Token in Redis: key = "user:<username>:<sessionId>" with 7-day TTL
@@ -199,7 +199,7 @@ public class AuthService {
         String incomingRefreshToken = dto.getRefreshToken();
 
         // 1. Validate JWT cryptographic signature and expiration
-        if (jwtService.isTokenValid(incomingRefreshToken)) {
+        if (!jwtService.isTokenValid(incomingRefreshToken)) {
             throw new BadCredentialsException("Refresh token is invalid or expired.");
         }
 
@@ -237,7 +237,7 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(user.getUsername(), null, authorities);
 
         // 5. Issue ONLY a fresh Access Token (Reuse the existing valid Refresh Token)
-        String newAccessToken = jwtService.generateAccessToken(auth);
+        String newAccessToken = jwtService.generateAccessToken(auth, sessionId);
 
         log.info("Access token successfully refreshed for user {} on session {}", username, sessionId);
 
