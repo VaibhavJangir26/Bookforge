@@ -17,6 +17,27 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * =========================================================================================
+ *                         GATEWAY HEADER SECURITY FILTER
+ * =========================================================================================
+ *
+ * This filter extracts trusted user identity headers and populates Spring's SecurityContext.
+ *
+ * SUPPORTED HEADERS:
+ *   - X-User-Id    : The unique database UUID of the authenticated user
+ *   - X-User-Name  : The username or email of the user
+ *   - X-User-Roles : Comma-delimited roles (e.g. ROLE_CUSTOMER,ROLE_PROVIDER,ROLE_ADMIN)
+ *   - X-User-Role  : Single role fallback (e.g. ROLE_CUSTOMER)
+ *
+ * HOW TO USE DURING DIRECT POSTMAN TESTING (WITHOUT GATEWAY):
+ *   When testing a single service directly (e.g. http://localhost:8700), simply add these
+ *   headers in Postman's Headers tab:
+ *     X-User-Id: <test-user-id>
+ *     X-User-Name: <test-username>
+ *     X-User-Roles: ROLE_CUSTOMER,ROLE_PROVIDER
+ * =========================================================================================
+ */
 @Component
 public class GatewayHeaderSecurityFilter extends OncePerRequestFilter {
 
@@ -53,12 +74,14 @@ public class GatewayHeaderSecurityFilter extends OncePerRequestFilter {
                         .collect(Collectors.toList());
             }
 
+            // Create UserPrincipal POJO
             UserPrincipal principal = UserPrincipal.builder()
                     .userId(userId)
                     .username(username)
                     .roles(roleSet)
                     .build();
 
+            // Set Spring Security Authentication
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(principal, null, authorities);
 

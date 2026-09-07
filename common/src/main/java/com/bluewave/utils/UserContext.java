@@ -11,14 +11,32 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * ============================================================================
+ * USER CONTEXT UTILITY (Zero-DB Microservice Identity Access)
+ * ============================================================================
+ * Downstream microservices (catalog, booking, payment) use this utility
+ * to retrieve the authenticated caller's identity without hitting the database.
+ *
+ * Identity is populated by GatewayHeaderSecurityFilter from trusted headers:
+ * - X-User-Id
+ * - X-User-Name
+ * - X-User-Roles
+ *
+ * Example Usage in Service or Controller:
+ *   String userId = UserContext.getUserId();
+ *   String username = UserContext.getUsername();
+ *   boolean isProvider = UserContext.hasRole("ROLE_PROVIDER");
+ * ============================================================================
+ */
 @Component
-public class UsersPrincipals {
+public class UserContext {
 
     public static Authentication getAuthentication() {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
-    public static UserPrincipal getCurrentUserPrincipal() {
+    public static UserPrincipal getUserPrincipal() {
         Authentication auth = getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             throw new BadCredentialsException("No authenticated user found in SecurityContext");
@@ -28,16 +46,16 @@ public class UsersPrincipals {
         }
         return UserPrincipal.builder()
                 .username(auth.getName())
-                .roles(getCurrentUserRoles())
+                .roles(getUserRoles())
                 .build();
     }
 
-    public static String getCurrentUserId() {
-        UserPrincipal principal = getCurrentUserPrincipal();
+    public static String getUserId() {
+        UserPrincipal principal = getUserPrincipal();
         return principal != null ? principal.getUserId() : null;
     }
 
-    public static String getCurrentUsername() {
+    public static String getUsername() {
         Authentication auth = getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             throw new BadCredentialsException("No authenticated user found in SecurityContext");
@@ -45,7 +63,7 @@ public class UsersPrincipals {
         return auth.getName();
     }
 
-    public static Set<String> getCurrentUserRoles() {
+    public static Set<String> getUserRoles() {
         Authentication auth = getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             return Collections.emptySet();
