@@ -1,6 +1,5 @@
 package com.bluewave.config;
 
-import com.bluewave.utils.CustomUserDetailsService;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -38,33 +38,35 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth->auth
+                .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/eureka/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2->oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder()).jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer ->
+                        jwtConfigurer.decoder(jwtDecoder()).jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public JwtDecoder jwtDecoder(){
-        SecretKey key= Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    public JwtDecoder jwtDecoder() {
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return NimbusJwtDecoder.withSecretKey(key).build();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(CustomUserDetailsService detailsService){
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(passwordEncoder());
-        authenticationProvider.setUserDetailsService(detailsService);
-        return authenticationProvider;
+    public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder);
+        return authProvider;
     }
 
     @Bean
@@ -73,23 +75,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter(){
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter=new JwtGrantedAuthoritiesConverter();
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
         grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
 
-        JwtAuthenticationConverter authenticationConverter=new JwtAuthenticationConverter();
-        authenticationConverter.setJwtGrantedAuthoritiesConverter(jwt->{
-            List<String> roles=jwt.getClaimAsStringList("roles");
-            if(roles==null) return Collections.emptyList();
-            return roles.stream().map(r->r.startsWith("ROLE_")?r.substring(5):r)
-                    .map(r->new SimpleGrantedAuthority("ROLE_"+ r))
+        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            List<String> roles = jwt.getClaimAsStringList("roles");
+            if (roles == null) return Collections.emptyList();
+            return roles.stream()
+                    .map(r -> r.startsWith("ROLE_") ? r.substring(5) : r)
+                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
                     .collect(Collectors.toSet());
-
-                }
-        );
-        return  authenticationConverter;
+        });
+        return authenticationConverter;
     }
-
-
 }
