@@ -216,16 +216,19 @@ public class AuthService {
         String storedRefreshToken = redisTemplate.opsForValue().get(redisKey);
 
         if (storedRefreshToken == null) {
-            log.warn("Refresh attempt failed: Session {} for user {} has been revoked or expired in Redis", sessionId, username);
+            log.warn("Refresh attempt failed: Session {} for user {} has been revoked", sessionId, username);
             throw new BadCredentialsException("Session has been revoked or logged out. Please login again.");
         }
 
         if (!storedRefreshToken.equals(incomingRefreshToken)) {
-            log.error("Security Alert: Mismatched refresh token for user {} on session {}", username, sessionId);
-            throw new BadCredentialsException("Invalid session token payload.");
+            // SECURITY MEASURE (Theft Detection): If the token in Redis doesn't match the incoming token,
+            // an old/stolen token was just reused. Delete the session entirely to protect the user.
+            redisTemplate.delete(redisKey);
+            log.error("Security Alert: Token reuse detected for user {} on session {}. Session destroyed.", username, sessionId);
+            throw new BadCredentialsException("Security violation: Token reuse detected. Please login again.");
         }
 
-        // 4. Load user details from DB to build fresh Spring Security GrantedAuthorities
+        // 4. Load user details
         Users user = usersRepo.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
@@ -236,16 +239,20 @@ public class AuthService {
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(user.getUsername(), null, authorities);
 
-        // 5. Issue ONLY a fresh Access Token (Reuse the existing valid Refresh Token)
+        // 5. ROTATION: Issue BOTH a fresh Access Token AND a fresh Refresh Token
         String newAccessToken = jwtService.generateAccessToken(auth, sessionId);
+        String newRefreshToken = jwtService.generateRefreshToken(username, sessionId);
 
-        log.info("Access token successfully refreshed for user {} on session {}", username, sessionId);
+        // 6. Overwrite the old refresh token in Redis with the newly generated one
+        saveSessionToRedis(username, sessionId, newRefreshToken);
+
+        log.info("Tokens successfully rotated for user {} on session {}", username, sessionId);
 
         return AuthResponseDTO.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(incomingRefreshToken) // 👈 Returns the existing valid Refresh Token without rotating
+                .refreshToken(newRefreshToken) // 👈 Returns the NEW rotated Refresh Token
                 .roles(user.getRoles().stream().map(r -> r.getAppRole().name()).collect(Collectors.toSet()))
-                .message("Access token refreshed successfully")
+                .message("Tokens refreshed successfully")
                 .build();
     }
 
@@ -258,8 +265,8 @@ public class AuthService {
     public String logout(AuthNewTokenRequestDTO dto) {
         String refreshToken = dto.getRefreshToken();
 
-        // 1. Validate refresh token structure and signature
-        if (jwtService.isTokenValid(refreshToken)) {
+        // BUG FIX: Added the '!' to properly check if the token is NOT valid
+        if (!jwtService.isTokenValid(refreshToken)) {
             throw new BadCredentialsException("Invalid or expired refresh token.");
         }
 
@@ -272,7 +279,7 @@ public class AuthService {
             String redisKey = buildRedisKey(username, sessionId);
             Boolean deleted = redisTemplate.delete(redisKey);
 
-            if (Boolean.TRUE.equals(deleted)) {
+            if (deleted) {
                 log.info("Session {} for user {} successfully deleted from Redis", sessionId, username);
             } else {
                 log.warn("Logout executed, but session key {} was already missing in Redis", redisKey);
@@ -281,7 +288,6 @@ public class AuthService {
 
         return "Logged out successfully.";
     }
-
     // ==========================================
     // HELPER METHODS
     // ==========================================
