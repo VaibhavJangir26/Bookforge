@@ -23,27 +23,28 @@ public class CategoryController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonApiResponse<CreateCategoryRequestDTO>> createCategory(@Valid @RequestBody CreateCategoryRequestDTO requestDTO){
+    public ResponseEntity<CommonApiResponse<CreateCategoryRequestDTO>> createCategory(
+            @Valid @RequestBody CreateCategoryRequestDTO requestDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(requestDTO));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'PROVIDER', 'ADMIN')")
-    public ResponseEntity<CommonApiResponse<List<CategoryResponseDTO>>> getAllCategoryList(){
+    public ResponseEntity<CommonApiResponse<List<CategoryResponseDTO>>> getAllCategoryList() {
         return ResponseEntity.ok(categoryService.getAllCategoryList());
     }
 
     @PatchMapping
-    @PreAuthorize("hasAnyRole('ADMIN','PROVIDER')")
-    public ResponseEntity<CommonApiResponse<UpdateCategoryRequestDTO>> updateCategory(@Valid @RequestBody UpdateCategoryRequestDTO requestDTO){
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonApiResponse<UpdateCategoryRequestDTO>> updateCategory(
+            @Valid @RequestBody UpdateCategoryRequestDTO requestDTO) {
         return ResponseEntity.ok(categoryService.updateCategory(requestDTO));
     }
-    
-    @DeleteMapping("/{categoryId}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<Map<String,String>> deleteCategory(@PathVariable String categoryId){
-        String message=categoryService.deleteCategory(categoryId);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of("message",message));
-    }
 
+    @DeleteMapping("/{categoryId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> deleteCategory(@PathVariable String categoryId) {
+        String message = categoryService.deleteCategory(categoryId);
+        return ResponseEntity.ok(Map.of("message", message));
+    }
 }
