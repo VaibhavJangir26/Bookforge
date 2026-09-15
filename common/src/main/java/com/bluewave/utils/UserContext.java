@@ -88,4 +88,16 @@ public class UserContext {
                 .filter(Objects::nonNull)
                 .anyMatch(authority -> authority.equals(expectedRole));
     }
+
+    public static boolean isAdmin() {
+        return hasRole("ROLE_ADMIN");
+    }
+
+    public static boolean isProvider() {
+        return hasRole("ROLE_PROVIDER");
+    }
+
+    public static boolean isCustomer() {
+        return hasRole("ROLE_CUSTOMER");
+    }
 }
