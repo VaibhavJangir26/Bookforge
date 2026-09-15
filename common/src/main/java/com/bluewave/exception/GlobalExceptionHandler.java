@@ -79,4 +79,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<CommonApiResponse<Void>> handleGenericException(Exception ex) {
         return buildErrorResponse("An unexpected error occurred: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, null);
     }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return buildErrorResponse("You do not have permission to access this resource", HttpStatus.FORBIDDEN, null);
+    }
 }
