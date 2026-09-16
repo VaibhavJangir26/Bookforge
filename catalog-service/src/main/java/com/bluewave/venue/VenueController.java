@@ -29,7 +29,7 @@ public class VenueController {
     }
 
     @PatchMapping("/{venueId}/details")
-    @PreAuthorize("hasRole('PROVIDER')")
+    @PreAuthorize("hasAnyRole('PROVIDER', 'ADMIN')")
     public ResponseEntity<CommonApiResponse<VenueResponseDTO>> updateVenueDetails(
             @PathVariable String venueId,
             @Valid @RequestBody UpdateVenueDetailsRequestDTO requestDTO) {

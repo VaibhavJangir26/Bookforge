@@ -17,11 +17,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CreateVenueRequestDTO {
 
-    @NotBlank(message = "provider id is required to create venue")
-    private String providerId;
 
     @NotBlank(message = "unique slug name is required")
     private String slug;
+
+    @NotBlank(message = "venue name is required")
+    private String name;
 
     @NotBlank(message = "venue description is required")
     private String description;

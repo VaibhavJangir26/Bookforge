@@ -19,6 +19,7 @@ public class VenueResponseDTO {
 
     private String id;
     private String providerId;
+    private String name;
     private String slug;
     private String description;
     private String contactEmail;
@@ -27,7 +28,6 @@ public class VenueResponseDTO {
     private Address address;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private CategoryResponseDTO categoryResponseDTO;
-
+    private String categoryId;
 
 }

@@ -2,10 +2,7 @@ package com.bluewave.venue;
 
 import com.bluewave.category.Category;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Entity
 @ToString(exclude = "category")
+@EqualsAndHashCode(exclude = "category")
 public class Venue {
 
     @Id
@@ -24,6 +22,8 @@ public class Venue {
 
     @Column(nullable = false)
     private String providerId;
+
+    private String name;
 
     private String slug;
 

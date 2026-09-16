@@ -15,7 +15,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UpdateVenueDetailsRequestDTO {
 
-
     private String name;
 
     private String slug;
@@ -30,8 +29,6 @@ public class UpdateVenueDetailsRequestDTO {
 
     @Size(min = 10,max = 10,message = "10 digit phone no is required")
     private String contactPhone;
-
-    private String categoryId;
 
 
 }
