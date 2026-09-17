@@ -101,10 +101,8 @@ public class CategoryService {
 
     @Transactional
     public String deleteCategory(String categoryId) {
-        if (!categoryRepo.existsById(categoryId)) {
-            throw new ResourceNotFoundException("category not found with id " + categoryId);
-        }
-        categoryRepo.deleteById(categoryId);
+        Category category= categoryRepo.findById(categoryId).orElseThrow(()->new ResourceNotFoundException("category not found with id " + categoryId));
+        categoryRepo.delete(category);
         return "category deleted successfully";
     }
 }

@@ -25,7 +25,7 @@ public class Space {
 
     private String description;
 
-    private Integer capacity;
+    private int capacity;
 
     private BigDecimal basePrice;
 
