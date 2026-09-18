@@ -7,9 +7,11 @@ import com.bluewave.space.dto.UpdateSpaceRequestDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -21,18 +23,24 @@ public class SpaceController {
 
     private final SpaceService spaceService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('PROVIDER')")
-    public ResponseEntity<CommonApiResponse<ResponseSpacesDTO>> createNewSpace(@Valid @RequestBody CreateSpaceRequestDTO requestDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(spaceService.createNewSpace(requestDTO));
+    public ResponseEntity<CommonApiResponse<ResponseSpacesDTO>> createNewSpace(
+            @Valid @RequestPart("request") CreateSpaceRequestDTO requestDTO,
+            @RequestPart(required = false, value = "images") List<MultipartFile> spaceImages
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(spaceService.createNewSpace(requestDTO, spaceImages));
     }
 
-    @PatchMapping("/{spaceId}")
+    @PatchMapping(value = "/{spaceId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('PROVIDER', 'ADMIN')")
     public ResponseEntity<CommonApiResponse<ResponseSpacesDTO>> updateSpaceDetails(
-            @Valid @RequestBody UpdateSpaceRequestDTO requestDTO,
-            @PathVariable String spaceId) {
-        return ResponseEntity.ok(spaceService.updateSpaceDetails(requestDTO, spaceId));
+            @Valid @RequestPart("request") UpdateSpaceRequestDTO requestDTO,
+            @PathVariable String spaceId,
+            @RequestPart(required = false, value = "images") List<MultipartFile> updateSpaceImages,
+            @RequestParam(required = false) List<String> publicIdsToDelete
+    ) {
+        return ResponseEntity.ok(spaceService.updateSpaceDetails(requestDTO, spaceId, updateSpaceImages));
     }
 
     @GetMapping

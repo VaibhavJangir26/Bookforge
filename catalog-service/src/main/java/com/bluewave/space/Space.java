@@ -8,6 +8,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -30,6 +32,12 @@ public class Space {
     private BigDecimal basePrice;
 
     private Boolean active = true;
+
+    @ElementCollection
+    private List<String> imgUrls = new ArrayList<>();
+
+    @ElementCollection
+    private List<String> imgPublicIds = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;

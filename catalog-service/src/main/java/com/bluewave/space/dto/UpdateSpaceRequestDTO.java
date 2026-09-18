@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class UpdateSpaceRequestDTO {
@@ -22,4 +23,5 @@ public class UpdateSpaceRequestDTO {
 
     private Boolean active;
 
+    private List<String> publicIdsToDelete;
 }

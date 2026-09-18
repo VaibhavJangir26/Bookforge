@@ -1,5 +1,7 @@
 package com.bluewave.space;
 
+import com.bluewave.cloudinary.CloudinaryService;
+import com.bluewave.dto.CloudinaryResponseDTO;
 import com.bluewave.dto.CommonApiResponse;
 import com.bluewave.exception.ResourceNotFoundException;
 import com.bluewave.space.dto.CreateSpaceRequestDTO;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,8 +24,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SpaceService {
 
+    private static final int MAX_IMAGES = 3;
+
     private final SpaceRepo spaceRepo;
     private final VenueRepo venueRepo;
+    private final CloudinaryService cloudinaryService;
 
     private void validateVenueOwnership(Venue venue) {
         String currentUserId = UserContext.getUserId();
@@ -30,13 +36,26 @@ public class SpaceService {
             throw new AccessDeniedException("you do not have permission to manage spaces in this venue");
         }
     }
+    private List<MultipartFile> filterValidFiles(List<MultipartFile> files) {
+        if (files == null) {
+            return List.of();
+        }
+        return files.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+    }
 
     @Transactional
-    public CommonApiResponse<ResponseSpacesDTO> createNewSpace(CreateSpaceRequestDTO requestDTO) {
+    public CommonApiResponse<ResponseSpacesDTO> createNewSpace(CreateSpaceRequestDTO requestDTO,List<MultipartFile> images) {
         Venue venue = venueRepo.findById(requestDTO.getVenueId())
                 .orElseThrow(() -> new ResourceNotFoundException("venue id not found"));
 
         validateVenueOwnership(venue);
+
+        List<MultipartFile> validImages = filterValidFiles(images);
+        if (validImages.size() > MAX_IMAGES) {
+            throw new IllegalArgumentException("you can upload a maximum of " + MAX_IMAGES + " images per space");
+        }
 
         Space space = new Space();
         space.setBasePrice(requestDTO.getBasePrice());
@@ -45,6 +64,14 @@ public class SpaceService {
         space.setDescription(requestDTO.getDescription().trim());
         space.setVenue(venue);
         space.setActive(true);
+
+        if (!validImages.isEmpty()) {
+            for (MultipartFile file : validImages) {
+                CloudinaryResponseDTO uploaded = cloudinaryService.uploadImage(file, "spaces");
+                space.getImgUrls().add(uploaded.getSecureUrl());
+                space.getImgPublicIds().add(uploaded.getPublicId());
+            }
+        }
 
         Space savedSpace = spaceRepo.save(space);
 
@@ -58,7 +85,7 @@ public class SpaceService {
     }
 
     @Transactional
-    public CommonApiResponse<ResponseSpacesDTO> updateSpaceDetails(UpdateSpaceRequestDTO requestDTO, String spaceId) {
+    public CommonApiResponse<ResponseSpacesDTO> updateSpaceDetails(UpdateSpaceRequestDTO requestDTO, String spaceId,List<MultipartFile> newImages) {
         Space exists = spaceRepo.findById(spaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("space id not found"));
 
@@ -78,6 +105,30 @@ public class SpaceService {
         }
         if (requestDTO.getActive() != null) {
             exists.setActive(requestDTO.getActive());
+        }
+
+        // 1. Delete requested existing images by publicId
+        if (requestDTO.getPublicIdsToDelete() != null && !requestDTO.getPublicIdsToDelete().isEmpty()) {
+            for (String publicId : requestDTO.getPublicIdsToDelete()) {
+                int index = exists.getImgPublicIds().indexOf(publicId);
+                if (index != -1) {
+                    cloudinaryService.deleteImage(publicId);
+                    exists.getImgPublicIds().remove(index);
+                    exists.getImgUrls().remove(index);
+                }
+            }
+        }
+
+        // 2. Validate total image count and upload additions
+        List<MultipartFile> validNewImages = filterValidFiles(newImages);
+        if (exists.getImgUrls().size() + validNewImages.size() > MAX_IMAGES) {
+            throw new IllegalArgumentException("total img cannot exceed" + MAX_IMAGES + "remove some existing images first");
+        }
+
+        for (MultipartFile file : validNewImages) {
+            CloudinaryResponseDTO uploaded = cloudinaryService.uploadImage(file, "spaces");
+            exists.getImgUrls().add(uploaded.getSecureUrl());
+            exists.getImgPublicIds().add(uploaded.getPublicId());
         }
 
         Space updatedSpace = spaceRepo.save(exists);
@@ -126,6 +177,11 @@ public class SpaceService {
                 .orElseThrow(() -> new ResourceNotFoundException("space with id not found"));
 
         validateVenueOwnership(space.getVenue());
+        if (space.getImgPublicIds() != null && !space.getImgPublicIds().isEmpty()) {
+            for (String publicId : space.getImgPublicIds()) {
+                cloudinaryService.deleteImage(publicId);
+            }
+        }
 
         spaceRepo.delete(space);
         return "space deleted successfully";
