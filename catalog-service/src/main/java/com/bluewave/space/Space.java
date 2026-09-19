@@ -1,5 +1,7 @@
 package com.bluewave.space;
 
+import com.bluewave.availablity.model.AvailableRule;
+import com.bluewave.availablity.model.BlackoutSlot;
 import com.bluewave.resources.Resources;
 import com.bluewave.venue.Venue;
 import jakarta.persistence.*;
@@ -50,8 +52,13 @@ public class Space {
     @JoinColumn(name = "venue_id",nullable = false)
     private Venue venue;
 
-
     @OneToMany(mappedBy = "space",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<Resources> resourcesList=new ArrayList<>();
+
+    @OneToMany(mappedBy = "space",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    private List<AvailableRule> availableRuleList=new ArrayList<>();
+
+    @OneToMany(mappedBy = "space",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    private List<BlackoutSlot> blackoutSlotList=new ArrayList<>();
 
 }
