@@ -37,10 +37,15 @@ public class SpaceController {
     public ResponseEntity<CommonApiResponse<ResponseSpacesDTO>> updateSpaceDetails(
             @Valid @RequestPart("request") UpdateSpaceRequestDTO requestDTO,
             @PathVariable String spaceId,
-            @RequestPart(required = false, value = "images") List<MultipartFile> updateSpaceImages,
-            @RequestParam(required = false) List<String> publicIdsToDelete
+            @RequestPart(required = false, value = "images") List<MultipartFile> updateSpaceImages
     ) {
         return ResponseEntity.ok(spaceService.updateSpaceDetails(requestDTO, spaceId, updateSpaceImages));
+    }
+
+    @GetMapping("/venue/{venueId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER', 'CUSTOMER')")
+    public ResponseEntity<CommonApiResponse<List<ResponseSpacesDTO>>> getSpacesByVenueId(@PathVariable String venueId) {
+        return ResponseEntity.ok(spaceService.getSpacesByVenueId(venueId));
     }
 
     @GetMapping

@@ -1,5 +1,6 @@
 package com.bluewave.space;
 
+import com.bluewave.resources.Resources;
 import com.bluewave.venue.Venue;
 import jakarta.persistence.*;
 import lombok.*;
@@ -48,5 +49,9 @@ public class Space {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "venue_id",nullable = false)
     private Venue venue;
+
+
+    @OneToMany(mappedBy = "space",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    private List<Resources> resourcesList=new ArrayList<>();
 
 }

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -171,15 +172,51 @@ public class SpaceService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public CommonApiResponse<List<ResponseSpacesDTO>> getSpacesByVenueId(String venueId) {
+        if (!venueRepo.existsById(venueId)) {
+            throw new ResourceNotFoundException("venue not found with id " + venueId);
+        }
+
+        List<Space> spaces = UserContext.isAdmin()
+                ? spaceRepo.findByVenueId(venueId)
+                : spaceRepo.findByVenueIdAndActiveTrue(venueId);
+
+        List<ResponseSpacesDTO> dtoList = spaces.stream()
+                .map(this::mapToDTO)
+                .toList();
+
+        return CommonApiResponse.<List<ResponseSpacesDTO>>builder()
+                .data(dtoList)
+                .message("spaces for venue fetched successfully")
+                .status(HttpStatus.OK.toString())
+                .success(true)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     @Transactional
     public String deleteSpace(String spaceId) {
         Space space = spaceRepo.findById(spaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("space with id not found"));
 
         validateVenueOwnership(space.getVenue());
+
+        // 1. Clean up Space Cloudinary images
         if (space.getImgPublicIds() != null && !space.getImgPublicIds().isEmpty()) {
             for (String publicId : space.getImgPublicIds()) {
                 cloudinaryService.deleteImage(publicId);
+            }
+        }
+
+        // 2. Clean up child Resources Cloudinary images before cascade delete
+        if (space.getResourcesList() != null && !space.getResourcesList().isEmpty()) {
+            for (var resource : space.getResourcesList()) {
+                if (resource.getImgPublicIds() != null && !resource.getImgPublicIds().isEmpty()) {
+                    for (String resPublicId : resource.getImgPublicIds()) {
+                        cloudinaryService.deleteImage(resPublicId);
+                    }
+                }
             }
         }
 
@@ -198,6 +235,7 @@ public class SpaceService {
                 .updatedAt(space.getUpdatedAt())
                 .name(space.getName())
                 .venueId(space.getVenue().getId())
+                .imgUrls(space.getImgUrls() != null ? new ArrayList<>(space.getImgUrls()) : List.of())
                 .build();
     }
 }
