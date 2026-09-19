@@ -1,28 +1,28 @@
 package com.bluewave.availablity;
 
-import com.bluewave.availablity.dto.AvailableResponseDTO;
-import com.bluewave.availablity.dto.BlackoutSlotResponseDTO;
-import com.bluewave.availablity.dto.CreateAvailableRuleRequestDTO;
-import com.bluewave.availablity.dto.CreateBlackoutSlotRequestDTO;
+import com.bluewave.availablity.dto.*;
 import com.bluewave.availablity.model.AvailableRule;
 import com.bluewave.availablity.model.BlackoutSlot;
 import com.bluewave.availablity.repo.AvailableRepo;
 import com.bluewave.availablity.repo.BlackoutSlotRepo;
 import com.bluewave.dto.CommonApiResponse;
+import com.bluewave.exception.ResourceConflictException;
 import com.bluewave.exception.ResourceNotFoundException;
 import com.bluewave.space.Space;
 import com.bluewave.space.SpaceRepo;
 import com.bluewave.utils.UserContext;
-import com.bluewave.venue.Venue;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,12 +39,21 @@ public class AvailableService {
         }
     }
 
-
     @Transactional
-    public CommonApiResponse<AvailableResponseDTO> createAvailableRule(@Valid CreateAvailableRuleRequestDTO requestDTO) {
-        Space space=spaceRepo.findById(requestDTO.getSpaceId()).orElseThrow(()->new ResourceNotFoundException("not space found with this id"));
+    public CommonApiResponse<AvailableResponseDTO> createAvailableRule(CreateAvailableRuleRequestDTO requestDTO) {
+        Space space = spaceRepo.findById(requestDTO.getSpaceId()).orElseThrow(() -> new ResourceNotFoundException("space not found with id" + requestDTO.getSpaceId()));
+
         validateSpaceOwnership(space);
-        AvailableRule availableRule=new AvailableRule();
+
+        if (Boolean.TRUE.equals(requestDTO.getOpen()) && !requestDTO.getOpeningTime().isBefore(requestDTO.getClosingTime())) {
+            throw new IllegalArgumentException("opening time must be strictly before closing time");
+        }
+
+        if (availableRepo.existsBySpaceIdAndDayOfWeek(space.getId(), requestDTO.getDayOfWeek())) {
+            throw new ResourceConflictException("availability rule already exists for " + requestDTO.getDayOfWeek() + "delete existing rule first");
+        }
+
+        AvailableRule availableRule = new AvailableRule();
         availableRule.setDayOfWeek(requestDTO.getDayOfWeek());
         availableRule.setOpeningTime(requestDTO.getOpeningTime());
         availableRule.setClosingTime(requestDTO.getClosingTime());
@@ -52,49 +61,58 @@ public class AvailableService {
         availableRule.setSpace(space);
         availableRule.setSlotDurationInMinutes(requestDTO.getSlotDurationInMinutes());
 
-        availableRepo.save(availableRule);
+        AvailableRule saved = availableRepo.save(availableRule);
 
         return CommonApiResponse.<AvailableResponseDTO>builder()
                 .status(HttpStatus.CREATED.toString())
                 .timestamp(LocalDateTime.now())
-                .message("available slot created successfully")
-                .data(availableMapToDto(availableRule))
+                .message("available rule created successfully")
+                .data(availableMapToDto(saved))
                 .success(true)
                 .build();
-
     }
 
     @Transactional
-    public CommonApiResponse<BlackoutSlotResponseDTO> createBlackoutSlots(@Valid CreateBlackoutSlotRequestDTO requestDTO) {
-        Space space=spaceRepo.findById(requestDTO.getSpaceId()).orElseThrow(()->new ResourceNotFoundException("not space found with this id"));
+    public CommonApiResponse<BlackoutSlotResponseDTO> createBlackoutSlots(CreateBlackoutSlotRequestDTO requestDTO) {
+        Space space = spaceRepo.findById(requestDTO.getSpaceId()).orElseThrow(() -> new ResourceNotFoundException("space not found with id" + requestDTO.getSpaceId()));
+
         validateSpaceOwnership(space);
 
-        BlackoutSlot blackoutSlot=new BlackoutSlot();
-        blackoutSlot.setSpace(space);
-        blackoutSlot.setEndDateTime(requestDTO.getEndDateTime());
-        blackoutSlot.setStartDateTime(requestDTO.getStartDateTime());
-        blackoutSlot.setReason(blackoutSlot.getReason());
+        if (!requestDTO.getStartDateTime().isBefore(requestDTO.getEndDateTime())) {
+            throw new IllegalArgumentException("start date time must be strictly before end date time");
+        }
 
-        blackoutSlotRepo.save(blackoutSlot);
+        BlackoutSlot blackoutSlot = new BlackoutSlot();
+        blackoutSlot.setSpace(space);
+        blackoutSlot.setStartDateTime(requestDTO.getStartDateTime());
+        blackoutSlot.setEndDateTime(requestDTO.getEndDateTime());
+        blackoutSlot.setReason(requestDTO.getReason().trim());
+
+        BlackoutSlot saved = blackoutSlotRepo.save(blackoutSlot);
 
         return CommonApiResponse.<BlackoutSlotResponseDTO>builder()
                 .status(HttpStatus.CREATED.toString())
                 .timestamp(LocalDateTime.now())
                 .message("blackout slot created successfully")
-                .data(blackoutSlotMapToDto(blackoutSlot))
+                .data(blackoutSlotMapToDto(saved))
                 .success(true)
                 .build();
     }
 
     @Transactional(readOnly = true)
     public CommonApiResponse<List<AvailableResponseDTO>> getAllAvailability(String spaceId) {
+        if (!spaceRepo.existsById(spaceId)) {
+            throw new ResourceNotFoundException("space not found with id" + spaceId);
+        }
 
-        List<AvailableResponseDTO> list=availableRepo.findAllByAvailable_spaceId(spaceId).stream().map(this::availableMapToDto).toList();
+        List<AvailableResponseDTO> list = availableRepo.findBySpaceId(spaceId).stream()
+                .map(this::availableMapToDto)
+                .toList();
 
         return CommonApiResponse.<List<AvailableResponseDTO>>builder()
                 .success(true)
-                .data(availableMapToDto(list))
-                .message("all available slot fetch successfully")
+                .data(list)
+                .message("available rules fetched successfully")
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.OK.toString())
                 .build();
@@ -102,56 +120,138 @@ public class AvailableService {
 
     @Transactional(readOnly = true)
     public CommonApiResponse<List<BlackoutSlotResponseDTO>> getAllBlackoutSlots(String spaceId) {
+        if (!spaceRepo.existsById(spaceId)) {
+            throw new ResourceNotFoundException("space not found with id" + spaceId);
+        }
 
-        List<BlackoutSlotResponseDTO> list=blackoutSlotRepo.findAllByBlackout_spaceId(spaceId).stream().map(this::blackoutSlotMapToDto).toList();
-
+        List<BlackoutSlotResponseDTO> list = blackoutSlotRepo.findBySpaceId(spaceId).stream()
+                .map(this::blackoutSlotMapToDto)
+                .toList();
 
         return CommonApiResponse.<List<BlackoutSlotResponseDTO>>builder()
                 .success(true)
-                .data(blackoutSlotMapToDto(list))
-                .message("all blackout slot fetch successfully")
+                .data(list)
+                .message("blackout slots fetched successfully")
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.OK.toString())
                 .build();
+    }
 
+    @Transactional(readOnly = true)
+    public CommonApiResponse<List<SlotResponseDTO>> getAvailableSlots(String spaceId, LocalDate startDate, LocalDate endDate) {
+        if (!spaceRepo.existsById(spaceId)) {
+            throw new ResourceNotFoundException("space not found with id" + spaceId);
+        }
+
+        // Apply 7-day fallback range logic
+        LocalDate resolvedStart;
+        LocalDate resolvedEnd;
+
+        if (startDate != null && endDate == null) {
+            resolvedStart = startDate;
+            resolvedEnd = startDate.plusDays(7);
+        } else if (startDate == null && endDate != null) {
+            resolvedStart = endDate.minusDays(7);
+            resolvedEnd = endDate;
+        } else if (startDate != null && endDate != null) {
+            if (startDate.isAfter(endDate)) {
+                throw new IllegalArgumentException("start date cannot be after end date");
+            }
+            resolvedStart = startDate;
+            resolvedEnd = endDate;
+        } else {
+            resolvedStart = LocalDate.now();
+            resolvedEnd = resolvedStart.plusDays(7);
+        }
+
+        // Load weekly rules and overlapping blackouts
+        Map<DayOfWeek, AvailableRule> ruleMap = availableRepo.findBySpaceId(spaceId).stream()
+                .collect(Collectors.toMap(AvailableRule::getDayOfWeek, Function.identity(), (r1, r2) -> r1));
+
+        LocalDateTime searchStartDateTime = resolvedStart.atStartOfDay();
+        LocalDateTime searchEndDateTime = resolvedEnd.atTime(LocalTime.MAX);
+        List<BlackoutSlot> blackouts = blackoutSlotRepo.findOverlappingBlackouts(spaceId, searchStartDateTime, searchEndDateTime);
+
+        List<SlotResponseDTO> computedSlots = new ArrayList<>();
+        LocalDate currentDate = resolvedStart;
+
+        while (!currentDate.isAfter(resolvedEnd)) {
+            DayOfWeek dow = DayOfWeek.valueOf(currentDate.getDayOfWeek().name());
+            AvailableRule rule = ruleMap.get(dow);
+
+            if (rule != null && rule.isOpen()) {
+                int duration = rule.getSlotDurationInMinutes() > 0 ? rule.getSlotDurationInMinutes() : 60;
+                LocalTime cursor = rule.getOpeningTime();
+
+                while (!cursor.plusMinutes(duration).isAfter(rule.getClosingTime())) {
+                    LocalDateTime slotStart = LocalDateTime.of(currentDate, cursor);
+                    LocalDateTime slotEnd = slotStart.plusMinutes(duration);
+
+                    Optional<BlackoutSlot> matchingBlackout = blackouts.stream()
+                            .filter(b -> b.getStartDateTime().isBefore(slotEnd) && b.getEndDateTime().isAfter(slotStart))
+                            .findFirst();
+
+                    boolean isAvailable = matchingBlackout.isEmpty();
+                    String reason = matchingBlackout.map(b -> "Blackout: " + b.getReason()).orElse(null);
+
+                    computedSlots.add(SlotResponseDTO.builder()
+                            .startTime(slotStart)
+                            .endTime(slotEnd)
+                            .available(isAvailable)
+                            .reason(reason)
+                            .build());
+
+                    cursor = cursor.plusMinutes(duration);
+                }
+            }
+
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return CommonApiResponse.<List<SlotResponseDTO>>builder()
+                .success(true)
+                .data(computedSlots)
+                .message("available slots calculated successfully")
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.OK.toString())
+                .build();
     }
 
     @Transactional
     public String deleteAvailability(String availabilityId) {
-        AvailableRule availableRule=availableRepo.findById(availabilityId).orElseThrow(()->new ResourceNotFoundException("no availability found for this id"));
+        AvailableRule availableRule = availableRepo.findById(availabilityId).orElseThrow(() -> new ResourceNotFoundException("no availability found for id" + availabilityId));
         validateSpaceOwnership(availableRule.getSpace());
         availableRepo.delete(availableRule);
-        return "available slot delete successfully";
+        return "available rule deleted successfully";
     }
 
     @Transactional
     public String deleteBlackouts(String blackoutId) {
-        BlackoutSlot blackoutSlot=blackoutSlotRepo.findById(blackoutId).orElseThrow(()->new ResourceNotFoundException("no blackout found for this id"));
+        BlackoutSlot blackoutSlot = blackoutSlotRepo.findById(blackoutId).orElseThrow(() -> new ResourceNotFoundException("no blackout found for id" + blackoutId));
         validateSpaceOwnership(blackoutSlot.getSpace());
         blackoutSlotRepo.delete(blackoutSlot);
-        return "blackout slot delete successfully";
-
+        return "blackout slot deleted successfully";
     }
 
-    private AvailableResponseDTO availableMapToDto(AvailableRule availableRule){
+    private AvailableResponseDTO availableMapToDto(AvailableRule rule) {
         return AvailableResponseDTO.builder()
-                .id(availableRule.getId())
-                .dayOfWeek(availableRule.getDayOfWeek())
-                .openingTime(availableRule.getOpeningTime())
-                .closingTime(availableRule.getClosingTime())
-                .open(availableRule.isOpen())
-                .spaceId(availableRule.getSpace().getId())
+                .id(rule.getId())
+                .dayOfWeek(rule.getDayOfWeek())
+                .openingTime(rule.getOpeningTime())
+                .closingTime(rule.getClosingTime())
+                .open(rule.isOpen())
+                .slotDurationInMinutes(rule.getSlotDurationInMinutes())
+                .spaceId(rule.getSpace().getId())
                 .build();
     }
 
-    private BlackoutSlotResponseDTO blackoutSlotMapToDto(BlackoutSlot blackoutSlot){
+    private BlackoutSlotResponseDTO blackoutSlotMapToDto(BlackoutSlot blackoutSlot) {
         return BlackoutSlotResponseDTO.builder()
                 .id(blackoutSlot.getId())
-                .endDateTime(blackoutSlot.getEndDateTime())
                 .startDateTime(blackoutSlot.getStartDateTime())
+                .endDateTime(blackoutSlot.getEndDateTime())
                 .reason(blackoutSlot.getReason())
                 .spaceId(blackoutSlot.getSpace().getId())
                 .build();
     }
-
 }
