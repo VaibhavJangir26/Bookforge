@@ -2,6 +2,7 @@ package com.bluewave.space;
 
 import com.bluewave.availablity.model.AvailableRule;
 import com.bluewave.availablity.model.BlackoutSlot;
+import com.bluewave.pricing.PricingRule;
 import com.bluewave.resources.Resources;
 import com.bluewave.venue.Venue;
 import jakarta.persistence.*;
@@ -60,5 +61,10 @@ public class Space {
 
     @OneToMany(mappedBy = "space",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<BlackoutSlot> blackoutSlotList=new ArrayList<>();
+
+    @OneToMany(mappedBy = "space",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    private List<PricingRule> pricingRuleList=new ArrayList<>();
+
+
 
 }
