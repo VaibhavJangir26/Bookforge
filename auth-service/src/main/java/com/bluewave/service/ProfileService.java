@@ -38,7 +38,7 @@ public class ProfileService {
                 .message("Profile fetched successfully")
                 .data(dto)
                 .success(true)
-                .status(String.valueOf(HttpStatus.OK.value()))
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -71,6 +71,7 @@ public class ProfileService {
                 .message("Profile updated successfully")
                 .data(mapToResponseDTO(updatedUser))
                 .success(true)
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -105,7 +106,7 @@ public class ProfileService {
                 .message("Provider application submitted successfully. Awaiting admin approval.")
                 .data(mapToResponseDTO(savedUser))
                 .success(true)
-                .status(String.valueOf(HttpStatus.OK.value()))
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .build();
     }

@@ -77,7 +77,7 @@ public class SpaceService {
         Space savedSpace = spaceRepo.save(space);
 
         return CommonApiResponse.<ResponseSpacesDTO>builder()
-                .status(HttpStatus.CREATED.toString())
+                .status(HttpStatus.CREATED.value())
                 .timestamp(LocalDateTime.now())
                 .message("space created successfully")
                 .data(mapToDTO(savedSpace))
@@ -135,7 +135,7 @@ public class SpaceService {
         Space updatedSpace = spaceRepo.save(exists);
 
         return CommonApiResponse.<ResponseSpacesDTO>builder()
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .message("space updated successfully")
                 .data(mapToDTO(updatedSpace))
@@ -152,7 +152,7 @@ public class SpaceService {
         return CommonApiResponse.<List<ResponseSpacesDTO>>builder()
                 .data(dtoList)
                 .message("all spaces fetched successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .success(true)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -164,7 +164,7 @@ public class SpaceService {
                 .orElseThrow(() -> new ResourceNotFoundException("no space with this id"));
 
         return CommonApiResponse.<ResponseSpacesDTO>builder()
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .message("space details fetched successfully")
                 .data(mapToDTO(space))
@@ -189,7 +189,7 @@ public class SpaceService {
         return CommonApiResponse.<List<ResponseSpacesDTO>>builder()
                 .data(dtoList)
                 .message("spaces for venue fetched successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .success(true)
                 .timestamp(LocalDateTime.now())
                 .build();

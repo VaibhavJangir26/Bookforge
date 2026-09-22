@@ -43,7 +43,7 @@ public class VenueService {
                 .data(mapToResponseDTO(savedVenue))
                 .message("Venue created successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.CREATED.toString())
+                .status(HttpStatus.CREATED.value())
                 .build();
     }
 
@@ -87,7 +87,7 @@ public class VenueService {
                 .data(mapToResponseDTO(updatedVenue))
                 .message("venue details updated successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 
@@ -104,7 +104,7 @@ public class VenueService {
                 .data(mapToResponseDTO(updatedVenue))
                 .message("venue status updated successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 
@@ -121,7 +121,7 @@ public class VenueService {
                 .data(dtoList)
                 .message("Provider venues fetched successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 
@@ -136,7 +136,7 @@ public class VenueService {
                 .data(dtoList)
                 .message("Venues by category fetched successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 
@@ -151,7 +151,7 @@ public class VenueService {
                 .data(dtoList)
                 .message("venue details fetch successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 
@@ -165,7 +165,7 @@ public class VenueService {
                 .data(mapToResponseDTO(venue))
                 .message("venue details fetch successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 

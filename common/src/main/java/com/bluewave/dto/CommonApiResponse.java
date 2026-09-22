@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class CommonApiResponse<T> {
 
-    private String status;
+    private Integer status;
     private boolean success;
     private LocalDateTime timestamp;
     private T data;

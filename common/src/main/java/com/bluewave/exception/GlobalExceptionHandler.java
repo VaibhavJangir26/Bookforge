@@ -3,10 +3,16 @@ package com.bluewave.exception;
 import com.bluewave.dto.CommonApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -17,7 +23,7 @@ public class GlobalExceptionHandler {
 
     private <T> ResponseEntity<CommonApiResponse<T>> buildErrorResponse(String message, HttpStatus status, T data) {
         CommonApiResponse<T> response = CommonApiResponse.<T>builder()
-                .status(String.valueOf(status.value()))
+                .status(status.value())
                 .success(false)
                 .timestamp(LocalDateTime.now())
                 .message(message)
@@ -30,6 +36,37 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<CommonApiResponse<Void>> handleBadRequest(BadRequestException ex) {
         return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, null);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        String msg = "Malformed JSON request or invalid field format: " + (ex.getRootCause() != null ? ex.getRootCause().getMessage() : ex.getMessage());
+        return buildErrorResponse(msg, HttpStatus.BAD_REQUEST, null);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleMissingParams(MissingServletRequestParameterException ex) {
+        return buildErrorResponse("Missing required request parameter: " + ex.getParameterName(), HttpStatus.BAD_REQUEST, null);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleMissingParts(MissingServletRequestPartException ex) {
+        return buildErrorResponse("Missing required request part: " + ex.getRequestPartName(), HttpStatus.BAD_REQUEST, null);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, null);
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleUsernameNotFound(UsernameNotFoundException ex) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.NOT_FOUND, null);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.UNAUTHORIZED, null);
     }
 
     @ExceptionHandler(TooManyRequestException.class)
@@ -75,13 +112,13 @@ public class GlobalExceptionHandler {
         return buildErrorResponse("Validation failed for one or more fields", HttpStatus.BAD_REQUEST, errors);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<CommonApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+        return buildErrorResponse("You do not have permission to access this resource", HttpStatus.FORBIDDEN, null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<CommonApiResponse<Void>> handleGenericException(Exception ex) {
         return buildErrorResponse("An unexpected error occurred: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, null);
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<CommonApiResponse<Void>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
-        return buildErrorResponse("You do not have permission to access this resource", HttpStatus.FORBIDDEN, null);
     }
 }

@@ -36,7 +36,7 @@ public class CategoryService {
         return CommonApiResponse.<CreateCategoryRequestDTO>builder()
                 .data(requestDTO)
                 .message("category created successfully")
-                .status(HttpStatus.CREATED.toString())
+                .status(HttpStatus.CREATED.value())
                 .timestamp(LocalDateTime.now())
                 .success(true)
                 .build();
@@ -57,7 +57,7 @@ public class CategoryService {
         return CommonApiResponse.<List<CategoryResponseDTO>>builder()
                 .data(list)
                 .message("all categories fetched successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .success(true)
                 .build();
@@ -93,7 +93,7 @@ public class CategoryService {
         return CommonApiResponse.<UpdateCategoryRequestDTO>builder()
                 .data(responseDto)
                 .message("Category updated successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .success(true)
                 .build();
@@ -116,7 +116,7 @@ public class CategoryService {
         return CommonApiResponse.<CategoryResponseDTO>builder()
                 .data(dto)
                 .message("Category details fetched successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .success(true)
                 .build();

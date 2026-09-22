@@ -45,7 +45,7 @@ public class VenueController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER', 'PROVIDER')")
     public ResponseEntity<CommonApiResponse<List<VenueResponseDTO>>> getAllVenues() {
         return ResponseEntity.ok(venueService.getAllVenues());
     }

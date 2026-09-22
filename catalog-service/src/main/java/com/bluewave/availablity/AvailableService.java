@@ -64,7 +64,7 @@ public class AvailableService {
         AvailableRule saved = availableRepo.save(availableRule);
 
         return CommonApiResponse.<AvailableResponseDTO>builder()
-                .status(HttpStatus.CREATED.toString())
+                .status(HttpStatus.CREATED.value())
                 .timestamp(LocalDateTime.now())
                 .message("available rule created successfully")
                 .data(availableMapToDto(saved))
@@ -91,7 +91,7 @@ public class AvailableService {
         BlackoutSlot saved = blackoutSlotRepo.save(blackoutSlot);
 
         return CommonApiResponse.<BlackoutSlotResponseDTO>builder()
-                .status(HttpStatus.CREATED.toString())
+                .status(HttpStatus.CREATED.value())
                 .timestamp(LocalDateTime.now())
                 .message("blackout slot created successfully")
                 .data(blackoutSlotMapToDto(saved))
@@ -114,7 +114,7 @@ public class AvailableService {
                 .data(list)
                 .message("available rules fetched successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 
@@ -133,7 +133,7 @@ public class AvailableService {
                 .data(list)
                 .message("blackout slots fetched successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 
@@ -213,7 +213,7 @@ public class AvailableService {
                 .data(computedSlots)
                 .message("available slots calculated successfully")
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .build();
     }
 

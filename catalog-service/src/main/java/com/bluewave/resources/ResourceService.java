@@ -82,7 +82,7 @@ public class ResourceService {
         return CommonApiResponse.<ResourceResponseDTO>builder()
                 .data(mapToDto(savedResource))
                 .message("Resource created successfully")
-                .status(HttpStatus.CREATED.toString())
+                .status(HttpStatus.CREATED.value())
                 .success(true)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -97,7 +97,7 @@ public class ResourceService {
         return CommonApiResponse.<List<ResourceResponseDTO>>builder()
                 .data(dtos)
                 .message("All resources fetched successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .success(true)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -116,7 +116,7 @@ public class ResourceService {
         return CommonApiResponse.<List<ResourceResponseDTO>>builder()
                 .data(dtos)
                 .message("Resources for space fetched successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .success(true)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -130,7 +130,7 @@ public class ResourceService {
         return CommonApiResponse.<ResourceResponseDTO>builder()
                 .data(mapToDto(resource))
                 .message("Resource details fetched successfully")
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .success(true)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -187,7 +187,7 @@ public class ResourceService {
         Resources savedResource = resourceRepo.save(exists);
 
         return CommonApiResponse.<ResourceResponseDTO>builder()
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .message("Resource updated successfully")
                 .data(mapToDto(savedResource))

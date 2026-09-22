@@ -69,7 +69,7 @@ public class PricingService {
         PricingRule saved = pricingRuleRepo.save(rule);
 
         return CommonApiResponse.<PricingRuleResponseDTO>builder()
-                .status(HttpStatus.CREATED.toString())
+                .status(HttpStatus.CREATED.value())
                 .timestamp(LocalDateTime.now())
                 .message("Pricing rule created successfully")
                 .data(mapToDTO(saved))
@@ -88,7 +88,7 @@ public class PricingService {
                 .toList();
 
         return CommonApiResponse.<List<PricingRuleResponseDTO>>builder()
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .message("Pricing rules fetched successfully")
                 .data(dtos)
@@ -179,7 +179,7 @@ public class PricingService {
                 .build();
 
         return CommonApiResponse.<CalculatePriceResponseDTO>builder()
-                .status(HttpStatus.OK.toString())
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .message("Dynamic price calculated successfully")
                 .data(response)

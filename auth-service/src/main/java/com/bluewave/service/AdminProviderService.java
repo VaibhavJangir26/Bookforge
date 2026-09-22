@@ -47,7 +47,7 @@ public class AdminProviderService {
                 .message("Pending provider applications fetched successfully")
                 .data(pending)
                 .success(true)
-                .status(String.valueOf(HttpStatus.OK.value()))
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -95,7 +95,7 @@ public class AdminProviderService {
                 .message("Provider status updated to " + requestDTO.getStatus())
                 .data(mapToDTO(updatedUser))
                 .success(true)
-                .status(String.valueOf(HttpStatus.OK.value()))
+                .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .build();
     }
