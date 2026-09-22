@@ -109,6 +109,23 @@ public class VenueService {
     }
 
     @Transactional(readOnly = true)
+    public CommonApiResponse<List<VenueResponseDTO>> getVenuesByCurrentProvider() {
+        String currentUserId = UserContext.getUserId();
+
+        List<VenueResponseDTO> dtoList = venueRepo.findByProviderId(currentUserId).stream()
+                .map(this::mapToResponseDTO)
+                .toList();
+
+        return CommonApiResponse.<List<VenueResponseDTO>>builder()
+                .success(true)
+                .data(dtoList)
+                .message("Provider venues fetched successfully")
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.OK.toString())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
     public CommonApiResponse<List<VenueResponseDTO>> getAllVenues() {
         List<VenueResponseDTO> dtoList = venueRepo.findAll().stream()
                 .map(this::mapToResponseDTO)

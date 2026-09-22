@@ -45,9 +45,15 @@ public class VenueController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER')")
     public ResponseEntity<CommonApiResponse<List<VenueResponseDTO>>> getAllVenues() {
         return ResponseEntity.ok(venueService.getAllVenues());
+    }
+
+    @GetMapping("/my-venues")
+    @PreAuthorize("hasRole('PROVIDER')")
+    public ResponseEntity<CommonApiResponse<List<VenueResponseDTO>>> getMyVenues() {
+        return ResponseEntity.ok(venueService.getVenuesByCurrentProvider());
     }
 
     @GetMapping("/{venueId}")
