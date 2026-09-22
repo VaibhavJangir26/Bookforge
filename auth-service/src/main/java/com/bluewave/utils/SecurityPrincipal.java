@@ -30,6 +30,9 @@ public class SecurityPrincipal {
         if(authentication==null|| !authentication.isAuthenticated()){
             throw new BadCredentialsException("no authenticated user found");
         }
+        if (authentication.getPrincipal() instanceof com.bluewave.utils.UserPrincipal up) {
+            return up.getUsername();
+        }
         return authentication.getName();
     }
 

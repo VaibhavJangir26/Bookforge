@@ -5,7 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
 
@@ -13,12 +15,20 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserPrincipal implements Serializable {
+public class UserPrincipal implements Serializable, Principal {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private String userId;
     private String username;
     @Builder.Default
     private Set<String> roles = Collections.emptySet();
+
+    @Override
+    public String getName() {
+        return this.username;
+    }
 
     public boolean hasRole(String role) {
         if (roles == null || role == null) {
