@@ -126,6 +126,21 @@ public class VenueService {
     }
 
     @Transactional(readOnly = true)
+    public CommonApiResponse<List<VenueResponseDTO>> getVenuesByCategoryId(String categoryId) {
+        List<VenueResponseDTO> dtoList = venueRepo.findByCategoryId(categoryId).stream()
+                .map(this::mapToResponseDTO)
+                .toList();
+
+        return CommonApiResponse.<List<VenueResponseDTO>>builder()
+                .success(true)
+                .data(dtoList)
+                .message("Venues by category fetched successfully")
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.OK.toString())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
     public CommonApiResponse<List<VenueResponseDTO>> getAllVenues() {
         List<VenueResponseDTO> dtoList = venueRepo.findAll().stream()
                 .map(this::mapToResponseDTO)

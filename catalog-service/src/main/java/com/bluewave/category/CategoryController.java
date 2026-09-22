@@ -34,6 +34,12 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getAllCategoryList());
     }
 
+    @GetMapping("/{categoryId}")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'PROVIDER', 'ADMIN')")
+    public ResponseEntity<CommonApiResponse<CategoryResponseDTO>> getCategoryById(@PathVariable String categoryId) {
+        return ResponseEntity.ok(categoryService.getCategoryById(categoryId));
+    }
+
     @PatchMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonApiResponse<UpdateCategoryRequestDTO>> updateCategory(

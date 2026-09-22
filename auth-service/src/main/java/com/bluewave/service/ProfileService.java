@@ -1,11 +1,14 @@
 package com.bluewave.service;
 
+import com.bluewave.dto.ApplyProviderRequestDTO;
 import com.bluewave.dto.CommonApiResponse;
 import com.bluewave.dto.ProfileResponseDTO;
 import com.bluewave.dto.ProfileUpdateRequestDTO;
 import com.bluewave.entity.Profile;
 import com.bluewave.entity.Users;
+import com.bluewave.exception.BadRequestException;
 import com.bluewave.repo.UsersRepo;
+import com.bluewave.utils.ProviderStatus;
 import com.bluewave.utils.SecurityPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +76,40 @@ public class ProfileService {
 
     }
 
+
+    @Transactional
+    @CacheEvict(value = "profile", key = "@securityPrincipal.getCurrentLoginUsername()")
+    public CommonApiResponse<ProfileResponseDTO> applyToBecomeProvider(ApplyProviderRequestDTO dto) {
+        Users user = securityPrincipal.getCurrentLoginUserEntity();
+        Profile profile = user.getProfile() != null ? user.getProfile() : new Profile();
+
+        if (profile.getProviderStatus() == ProviderStatus.PENDING) {
+            throw new BadRequestException("Your provider application is already under review");
+        }
+        if (profile.getProviderStatus() == ProviderStatus.APPROVED) {
+            throw new BadRequestException("You are already an approved provider");
+        }
+
+        profile.setBusinessName(dto.getBusinessName().trim());
+        profile.setTaxOrGstNumber(dto.getTaxOrGstNumber().trim());
+        profile.setMobileNo(dto.getMobileNo().trim());
+        profile.setAddress(dto.getBusinessAddress());
+        profile.setProviderStatus(ProviderStatus.PENDING);
+
+        user.setProfile(profile);
+        profile.setUsers(user);
+        Users savedUser = usersRepo.save(user);
+
+        log.info("User {} submitted an application to become a provider", savedUser.getUsername());
+        return CommonApiResponse.<ProfileResponseDTO>builder()
+                .message("Provider application submitted successfully. Awaiting admin approval.")
+                .data(mapToResponseDTO(savedUser))
+                .success(true)
+                .status(String.valueOf(HttpStatus.OK.value()))
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     private ProfileResponseDTO mapToResponseDTO(Users user) {
         Profile profile = user.getProfile();
 
@@ -84,6 +121,9 @@ public class ProfileService {
                 .profileId(profile != null ? profile.getId() : null)
                 .fullName(profile != null ? profile.getFullName() : null)
                 .mobileNo(profile != null ? profile.getMobileNo() : null)
+                .businessName(profile != null ? profile.getBusinessName() : null)
+                .taxOrGstNumber(profile != null ? profile.getTaxOrGstNumber() : null)
+                .providerStatus(profile != null ? profile.getProviderStatus() : ProviderStatus.NONE)
                 .address(profile != null ? profile.getAddress() : null)
                 .createdAt(profile != null ? profile.getUpdatedAt() : null)
                 .updatedAt(profile != null ? profile.getUpdatedAt() : null)

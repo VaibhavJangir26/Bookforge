@@ -99,6 +99,29 @@ public class CategoryService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public CommonApiResponse<CategoryResponseDTO> getCategoryById(String categoryId) {
+        Category category = categoryRepo.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("category not found with id " + categoryId));
+
+        CategoryResponseDTO dto = CategoryResponseDTO.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .description(category.getDescription())
+                .slug(category.getSlug())
+                .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
+                .build();
+
+        return CommonApiResponse.<CategoryResponseDTO>builder()
+                .data(dto)
+                .message("Category details fetched successfully")
+                .status(HttpStatus.OK.toString())
+                .timestamp(LocalDateTime.now())
+                .success(true)
+                .build();
+    }
+
     @Transactional
     public String deleteCategory(String categoryId) {
         Category category= categoryRepo.findById(categoryId).orElseThrow(()->new ResourceNotFoundException("category not found with id " + categoryId));

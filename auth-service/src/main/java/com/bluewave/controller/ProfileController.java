@@ -1,5 +1,6 @@
 package com.bluewave.controller;
 
+import com.bluewave.dto.ApplyProviderRequestDTO;
 import com.bluewave.dto.CommonApiResponse;
 import com.bluewave.dto.ProfileResponseDTO;
 import com.bluewave.dto.ProfileUpdateRequestDTO;
@@ -7,6 +8,7 @@ import com.bluewave.service.ProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,5 +29,11 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.updateUserProfile(dto));
     }
 
+    @PostMapping("/apply-provider")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<CommonApiResponse<ProfileResponseDTO>> applyToBecomeProvider(
+            @Valid @RequestBody ApplyProviderRequestDTO dto) {
+        return ResponseEntity.ok(profileService.applyToBecomeProvider(dto));
+    }
 
 }

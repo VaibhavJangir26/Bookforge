@@ -14,4 +14,6 @@ public interface VenueRepo extends JpaRepository<Venue,String> {
 
     List<Venue> findByProviderId(String providerId);
 
+    List<Venue> findByCategoryId(String categoryId);
+
 }
