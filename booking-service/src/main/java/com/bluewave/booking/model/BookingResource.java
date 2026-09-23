@@ -29,7 +29,6 @@ public class BookingResource {
     @Column(nullable = false)
     private BigDecimal pricePerUnit; // Price snapshot at the time of booking
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id",nullable = false)
     private Booking booking;

@@ -1,10 +1,10 @@
 package com.bluewave.booking;
 
-import com.bluewave.booking.model.Booking;
+import com.bluewave.booking.model.BookingResource;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BookingRepo extends JpaRepository<Booking,String> {
+public interface BookingResourceRepo extends JpaRepository<BookingResource,String> {
 
 }
