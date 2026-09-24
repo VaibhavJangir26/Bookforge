@@ -3,6 +3,7 @@ package com.bluewave.booking.client;
 import com.bluewave.dto.CalculatePriceRequestDTO;
 import com.bluewave.dto.CalculatePriceResponseDTO;
 import com.bluewave.dto.CommonApiResponse;
+import com.bluewave.dto.ResponseSpacesDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,18 @@ public class CatalogClientFallbackFactory implements FallbackFactory<CatalogClie
                         .success(false)
                         .status(Integer.valueOf(String.valueOf(HttpStatus.SERVICE_UNAVAILABLE.value())))
                         .message("Catalog service is currently unavailable for slot validation: " + cause.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .data(null)
+                        .build();
+            }
+
+            @Override
+            public CommonApiResponse<ResponseSpacesDTO> getSpaceById(String spaceId) {
+                log.error("CatalogClient fallback triggered for getting space {}. Error: {}", spaceId, cause.getMessage());
+                return CommonApiResponse.<ResponseSpacesDTO>builder()
+                        .success(false)
+                        .status(Integer.valueOf(String.valueOf(HttpStatus.SERVICE_UNAVAILABLE.value())))
+                        .message("Catalog service is currently unavailable for getting space: " + cause.getMessage())
                         .timestamp(LocalDateTime.now())
                         .data(null)
                         .build();

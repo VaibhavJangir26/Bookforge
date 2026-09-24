@@ -38,7 +38,7 @@ public class BookingController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'PROVIDER', 'ADMIN')") // FIX: Added ADMIN
     public ResponseEntity<CommonApiResponse<List<BookingResponseDTO>>> getAllMyBookingHistory() {
         return ResponseEntity.ok(bookingService.getAllMyBookingHistory());
     }

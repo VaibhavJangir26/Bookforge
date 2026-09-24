@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface BookingRepo extends JpaRepository<Booking,String> {
+public interface BookingRepo extends JpaRepository<Booking, String> {
 
     Optional<Booking> findByIdempotencyKey(String idempotencyKey);
 
@@ -24,4 +24,7 @@ public interface BookingRepo extends JpaRepository<Booking,String> {
             @Param("endTime") LocalDateTime endTime
     );
 
+    List<Booking> findBySpaceId(String spaceId);
+
+    List<Booking> findAllByCustomerId(String customerId);
 }

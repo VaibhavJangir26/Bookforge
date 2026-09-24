@@ -3,12 +3,11 @@ package com.bluewave.booking.client;
 import com.bluewave.dto.CalculatePriceRequestDTO;
 import com.bluewave.dto.CalculatePriceResponseDTO;
 import com.bluewave.dto.CommonApiResponse;
+import com.bluewave.dto.ResponseSpacesDTO;
 import jakarta.validation.Valid;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
@@ -24,4 +23,7 @@ public interface CatalogClient {
             @RequestParam("startDateTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDateTime,
             @RequestParam("endDateTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDateTime
     );
+
+    @GetMapping("/api/v1/spaces/{spaceId}")
+    CommonApiResponse<ResponseSpacesDTO> getSpaceById(@PathVariable("spaceId") String spaceId);
 }
