@@ -1,5 +1,6 @@
 package com.bluewave.pricing;
 
+import com.bluewave.availablity.AvailableService;
 import com.bluewave.availablity.DayOfWeek;
 import com.bluewave.dto.CommonApiResponse;
 import com.bluewave.exception.ResourceNotFoundException;
@@ -35,6 +36,7 @@ public class PricingService {
     private final PricingRepo pricingRuleRepo;
     private final SpaceRepo spaceRepo;
     private final ResourceRepo resourceRepo;
+    private final AvailableService availableService;
 
     private void validateSpaceOwnership(Space space) {
         String currentUserId = UserContext.getUserId();
@@ -110,11 +112,13 @@ public class PricingService {
     @Transactional(readOnly = true)
     public CommonApiResponse<CalculatePriceResponseDTO> calculatePrice(CalculatePriceRequestDTO requestDTO) {
         Space space = spaceRepo.findById(requestDTO.getSpaceId())
-                .orElseThrow(() -> new ResourceNotFoundException("Space not found with id: " + requestDTO.getSpaceId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Space not found with id " + requestDTO.getSpaceId()));
 
         if (!requestDTO.getSlotStartTime().isBefore(requestDTO.getSlotEndTime())) {
             throw new IllegalArgumentException("Slot start time must be before slot end time");
         }
+
+        availableService.validateSlotAvailability(space.getId(),requestDTO.getSlotStartTime(),requestDTO.getSlotEndTime());
 
         BigDecimal basePrice = space.getBasePrice();
         List<PricingRule> activeRules = pricingRuleRepo.findBySpaceIdAndActiveTrueOrderByPriorityDesc(space.getId());
@@ -186,6 +190,9 @@ public class PricingService {
                 .success(true)
                 .build();
     }
+
+
+
 
     private boolean isRuleApplicable(PricingRule rule, LocalDateTime slotStart, LocalDateTime slotEnd) {
         DayOfWeek slotDay = DayOfWeek.valueOf(slotStart.getDayOfWeek().name());

@@ -16,6 +16,11 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@Table(name = "booking", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_idempotency", columnNames = {"idempotencyKey"}),
+        // Prevents two confirmed/pending bookings for the same space at the same time
+        @UniqueConstraint(name = "uk_space_time_status", columnNames = {"spaceId", "slotStartTime", "slotEndTime", "status"})
+})
 public class Booking {
 
     @Id
@@ -36,7 +41,16 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private BookingStatus status;
+    private BookingStatus status=BookingStatus.PENDING_PAYMENT;
+
+    @Column(nullable = false)
+    private LocalDateTime slotStartTime;
+
+    @Column(nullable = false)
+    private LocalDateTime slotEndTime;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false)
     private BigDecimal basePriceAmount; // Base space rate at time of booking

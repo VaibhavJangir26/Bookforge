@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -53,6 +54,26 @@ public class AvailableController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ResponseEntity.ok(availableService.getAvailableSlots(spaceId, startDate, endDate));
     }
+
+
+    @PostMapping("/validate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER', 'CUSTOMER')")
+    public ResponseEntity<CommonApiResponse<Void>> validateSlot(
+            @RequestParam String spaceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDateTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDateTime) {
+
+        availableService.validateSlotAvailability(spaceId, startDateTime, endDateTime);
+
+        return ResponseEntity.ok(CommonApiResponse.<Void>builder()
+                .status(HttpStatus.OK.value())
+                .timestamp(LocalDateTime.now())
+                .message("Slot is available")
+                .success(true)
+                .build());
+    }
+
+
 
     @DeleteMapping("/rules/{availabilityId}")
     @PreAuthorize("hasRole('PROVIDER')")

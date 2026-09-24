@@ -254,4 +254,48 @@ public class AvailableService {
                 .spaceId(blackoutSlot.getSpace().getId())
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public void validateSlotAvailability(String spaceId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        if (!startDateTime.isBefore(endDateTime)) {
+            throw new IllegalArgumentException("Start time must be strictly before end time");
+        }
+
+        if (startDateTime.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Cannot book or calculate price for a slot in the past");
+        }
+
+        // 1. Verify space exists
+        if (!spaceRepo.existsById(spaceId)) {
+            throw new ResourceNotFoundException("Space not found with id: " + spaceId);
+        }
+
+        // 2. Validate against Weekly Operating Rules
+        DayOfWeek dow = DayOfWeek.valueOf(startDateTime.getDayOfWeek().name());
+        AvailableRule rule = availableRepo.findBySpaceId(spaceId).stream()
+                .filter(r -> r.getDayOfWeek() == dow)
+                .findFirst()
+                .orElseThrow(() -> new ResourceConflictException("Space has no operating rule configured for " + dow));
+
+        if (!rule.isOpen()) {
+            throw new ResourceConflictException("Space is closed on " + dow);
+        }
+
+        LocalTime requestedStart = startDateTime.toLocalTime();
+        LocalTime requestedEnd = endDateTime.toLocalTime();
+
+        if (requestedStart.isBefore(rule.getOpeningTime()) || requestedEnd.isAfter(rule.getClosingTime())) {
+            throw new ResourceConflictException(String.format(
+                    "Requested time (%s - %s) falls outside operating hours (%s - %s) on %s",
+                    requestedStart, requestedEnd, rule.getOpeningTime(), rule.getClosingTime(), dow
+            ));
+        }
+
+        // 3. Validate against Blackout Slots
+        List<BlackoutSlot> overlappingBlackouts = blackoutSlotRepo.findOverlappingBlackouts(spaceId, startDateTime, endDateTime);
+        if (!overlappingBlackouts.isEmpty()) {
+            BlackoutSlot blackout = overlappingBlackouts.get(0);
+            throw new ResourceConflictException("Requested slot is unavailable due to maintenance/blackout: " + blackout.getReason());
+        }
+    }
 }
