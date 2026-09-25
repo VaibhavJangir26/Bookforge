@@ -7,8 +7,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KafkaConfig {
 
-    private static final String PAYMENT_SUCCESSFUL_TOPIC="payment-successful-topic";
-    private static final String PAYMENT_REFUND_TOPIC="payment-refund-topic";
+    public static final String PAYMENT_SUCCESSFUL_TOPIC="payment-successful-topic";
+    public static final String PAYMENT_REFUND_TOPIC="payment-refund-topic";
+    public static final String BOOKING_CANCELLED_TOPIC="payment-cancel-topic";
 
     @Bean
     public NewTopic paymentSuccessfulTopic(){
@@ -19,6 +20,9 @@ public class KafkaConfig {
     public NewTopic paymentRefundTopic(){
         return new NewTopic(PAYMENT_REFUND_TOPIC,3,(short) 1);
     }
+
+
+
 
 
 
