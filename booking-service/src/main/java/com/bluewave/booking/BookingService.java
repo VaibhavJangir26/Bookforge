@@ -37,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 public class BookingService {
 
     private final BookingRepo bookingRepo;
-    private final BookingResourceRepo bookingResourceRepo;
     private final RedissonClient redissonClient;
     private final CatalogClient catalogClient;
     private final BookingEventPublisher bookingEventPublisher;
