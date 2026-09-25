@@ -1,6 +1,6 @@
 package com.bluewave.booking;
 
-import com.bluewave.booking.dto.BookingResponseDTO;
+import com.bluewave.dto.BookingResponseDTO;
 import com.bluewave.booking.dto.CancelBookingRequestDTO;
 import com.bluewave.booking.dto.CreateBookingRequestDTO;
 import com.bluewave.booking.dto.UpdateBookingStatusRequestDTO;

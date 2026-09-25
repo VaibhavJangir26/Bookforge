@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -18,6 +19,7 @@ public class BookingResponseDTO {
     private String customerId;
     private String venueId;
     private String spaceId;
+    private BookingStatus status;
     private BigDecimal basePriceAmount;
     private BigDecimal resourceTotalAmount;
     private BigDecimal taxAmount;
@@ -25,5 +27,6 @@ public class BookingResponseDTO {
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
     private String cancellationReason;
+    private List<BookingResourceResponseDTO> resourceItems;
 
 }

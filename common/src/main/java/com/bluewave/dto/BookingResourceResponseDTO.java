@@ -1,4 +1,4 @@
-package com.bluewave.booking.dto;
+package com.bluewave.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

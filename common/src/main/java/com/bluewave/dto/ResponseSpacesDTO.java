@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -23,4 +24,5 @@ public class ResponseSpacesDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String venueId;
+    private List<String> imgUrls;
 }

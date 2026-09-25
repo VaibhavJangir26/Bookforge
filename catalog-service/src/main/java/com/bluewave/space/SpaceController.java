@@ -1,8 +1,8 @@
 package com.bluewave.space;
 
 import com.bluewave.dto.CommonApiResponse;
+import com.bluewave.dto.ResponseSpacesDTO;
 import com.bluewave.space.dto.CreateSpaceRequestDTO;
-import com.bluewave.space.dto.ResponseSpacesDTO;
 import com.bluewave.space.dto.UpdateSpaceRequestDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

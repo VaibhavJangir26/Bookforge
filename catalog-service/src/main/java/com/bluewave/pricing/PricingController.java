@@ -1,8 +1,8 @@
 package com.bluewave.pricing;
 
 import com.bluewave.dto.CommonApiResponse;
-import com.bluewave.pricing.dto.CalculatePriceRequestDTO;
-import com.bluewave.pricing.dto.CalculatePriceResponseDTO;
+import com.bluewave.dto.CalculatePriceRequestDTO;
+import com.bluewave.dto.CalculatePriceResponseDTO;
 import com.bluewave.pricing.dto.CreatePricingRuleRequestDTO;
 import com.bluewave.pricing.dto.PricingRuleResponseDTO;
 import jakarta.validation.Valid;

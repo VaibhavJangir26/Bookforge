@@ -1,4 +1,4 @@
-package com.bluewave.booking;
+package com.bluewave.dto;
 
 public enum BookingStatus {
     PENDING_PAYMENT, // Slot temporarily held for 10 minutes

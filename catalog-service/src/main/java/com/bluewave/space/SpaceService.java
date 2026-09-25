@@ -4,8 +4,8 @@ import com.bluewave.cloudinary.CloudinaryService;
 import com.bluewave.dto.CloudinaryResponseDTO;
 import com.bluewave.dto.CommonApiResponse;
 import com.bluewave.exception.ResourceNotFoundException;
+import com.bluewave.dto.ResponseSpacesDTO;
 import com.bluewave.space.dto.CreateSpaceRequestDTO;
-import com.bluewave.space.dto.ResponseSpacesDTO;
 import com.bluewave.space.dto.UpdateSpaceRequestDTO;
 import com.bluewave.utils.UserContext;
 import com.bluewave.venue.Venue;
@@ -227,6 +227,7 @@ public class SpaceService {
     private ResponseSpacesDTO mapToDTO(Space space) {
         return ResponseSpacesDTO.builder()
                 .id(space.getId())
+                .providerId(space.getVenue() != null ? space.getVenue().getProviderId() : null)
                 .active(space.getActive())
                 .basePrice(space.getBasePrice())
                 .capacity(space.getCapacity())
@@ -234,7 +235,7 @@ public class SpaceService {
                 .createdAt(space.getCreatedAt())
                 .updatedAt(space.getUpdatedAt())
                 .name(space.getName())
-                .venueId(space.getVenue().getId())
+                .venueId(space.getVenue() != null ? space.getVenue().getId() : null)
                 .imgUrls(space.getImgUrls() != null ? new ArrayList<>(space.getImgUrls()) : List.of())
                 .build();
     }
