@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookForge - Premium Booking & Payment</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="icon">📘</span>
+                <h2>BookForge</h2>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-target="dashboard">Dashboard</li>
+                <li data-target="create-booking">New Booking</li>
+                <li data-target="my-bookings">My Bookings</li>
+                <li data-target="space-bookings">Space Bookings</li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="topbar">
+                <h1>Welcome to BookForge</h1>
+                <div class="user-profile">
+                    <span class="role-badge">CUSTOMER</span>
+                    <div class="avatar">U</div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <div class="hero-card">
+                    <h2>Seamless Bookings. Secure Payments.</h2>
+                    <p>Experience the most premium way to book spaces and manage your schedules.</p>
+                    <button class="btn-primary" onclick="switchTab('create-booking')">Book Now</button>
+                </div>
+            </section>
+
+            <!-- Create Booking Section -->
+            <section id="create-booking" class="content-section">
+                <div class="card form-card">
+                    <h2>Create a New Booking</h2>
+                    <form id="booking-form" class="dynamic-form">
+                        <div class="form-group">
+                            <label for="venueId">Venue ID</label>
+                            <input type="text" id="venueId" required placeholder="e.g. V-101">
+                        </div>
+                        <div class="form-group">
+                            <label for="spaceId">Space ID</label>
+                            <input type="text" id="spaceId" required placeholder="e.g. S-202">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="slotStartTime">Start Time</label>
+                                <input type="datetime-local" id="slotStartTime" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="slotEndTime">End Time</label>
+                                <input type="datetime-local" id="slotEndTime" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Resources</label>
+                            <div id="resource-container">
+                                <div class="resource-row">
+                                    <input type="text" placeholder="Resource ID" class="res-id">
+                                    <input type="text" placeholder="Name" class="res-name">
+                                    <input type="number" placeholder="Qty" class="res-qty" min="1">
+                                    <input type="number" placeholder="Price/Unit" class="res-price" step="0.01">
+                                </div>
+                            </div>
+                            <button type="button" class="btn-secondary btn-small" id="add-resource">+ Add Resource</button>
+                        </div>
+                        <button type="submit" class="btn-primary full-width">Initialize Booking</button>
+                    </form>
+                </div>
+
+                <!-- Payment Container (Hidden initially) -->
+                <div id="payment-container" class="card payment-card hidden">
+                    <h2>Complete Your Payment</h2>
+                    <p class="hold-warning">⚠️ Slot reserved for 5 minutes. Please complete payment.</p>
+                    <div class="booking-summary">
+                        <p>Booking ID: <span id="summary-booking-id"></span></p>
+                        <p>Total Amount: <span id="summary-amount"></span></p>
+                    </div>
+                    <form id="payment-form">
+                        <div id="payment-element">
+                            <!-- Stripe Elements will be inserted here -->
+                        </div>
+                        <button type="submit" id="submit-payment" class="btn-primary full-width">Pay Now</button>
+                        <div id="payment-message" class="hidden"></div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- My Bookings Section -->
+            <section id="my-bookings" class="content-section">
+                <div class="card">
+                    <div class="flex-header">
+                        <h2>My Bookings</h2>
+                        <button class="btn-secondary btn-small" onclick="fetchMyBookings()">Refresh</button>
+                    </div>
+                    <div class="refund-policy-banner">
+                        <strong>Refund Policy:</strong> Cancellations made 24+ hours before the slot start time are eligible for a FULL REFUND. Later cancellations are non-refundable.
+                    </div>
+                    <div class="table-responsive">
+                        <table class="premium-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Space</th>
+                                    <th>Start Time</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="my-bookings-list">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Space Bookings Section -->
+            <section id="space-bookings" class="content-section">
+                <div class="card">
+                    <h2>Space Bookings (Admin/Provider)</h2>
+                    <div class="form-row search-row">
+                        <input type="text" id="search-space-id" placeholder="Enter Space ID">
+                        <button class="btn-primary" onclick="fetchSpaceBookings()">Search</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="premium-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Customer</th>
+                                    <th>Start Time</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="space-bookings-list">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="details-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" onclick="closeModal('details-modal')">&times;</span>
+            <h2>Booking Details</h2>
+            <div id="booking-details-content"></div>
+            <div class="modal-actions" id="modal-actions-container">
+                <!-- Actions like Cancel, Refund injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="status-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" onclick="closeModal('status-modal')">&times;</span>
+            <h2>Update Status (Admin)</h2>
+            <select id="new-status">
+                <option value="CONFIRMED">CONFIRMED</option>
+                <option value="CANCELLED">CANCELLED</option>
+                <option value="EXPIRED">EXPIRED</option>
+                <option value="PENDING_PAYMENT">PENDING_PAYMENT</option>
+            </select>
+            <button class="btn-primary full-width" onclick="submitStatusUpdate()">Update Status</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
