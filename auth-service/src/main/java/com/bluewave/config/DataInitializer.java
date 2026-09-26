@@ -49,9 +49,14 @@ public class DataInitializer implements CommandLineRunner {
                 new Address("Mumbai", "Maharashtra", 400001, "742 Studio Sound Way, Suite 400"));
         seedUserIfAbsent("ram123", "provider@bluewave.com", "ram@123", Set.of(providerRole, customerRole), providerProfile);
 
-        Profile customerProfile = createProfile("Shyam Verma", "9123456780", null, null, ProviderStatus.NONE,
+        Profile customerProfile1 = createProfile("Shyam Verma", "9123456780", null, null, ProviderStatus.NONE,
                 new Address("Mumbai", "Maharashtra", 400050, "12 Creative Avenue, Bandra"));
-        seedUserIfAbsent("shyam123", "customer@bluewave.com", "shyam@123", Set.of(customerRole), customerProfile);
+        seedUserIfAbsent("shyam123", "customer@bluewave.com", "shyam@123", Set.of(customerRole), customerProfile1);
+
+        // Additional Customer Seeded
+        Profile customerProfile2 = createProfile("Rahul Kumar", "9700000000", null, null, ProviderStatus.NONE,
+                new Address("Jaipur", "Rajasthan", 302001, "45 MG Road, Civil Lines"));
+        seedUserIfAbsent("rahul123", "rahul@bluewave.com", "rahul@123", Set.of(customerRole), customerProfile2);
 
         log.info("Database test seed verification complete.");
     }
