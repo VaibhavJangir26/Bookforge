@@ -1,4 +1,4 @@
-package com.bluewave.dto;
+package com.bluewave.kafka_common_event;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

@@ -28,7 +28,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -119,7 +122,7 @@ public class PricingService {
             throw new IllegalArgumentException("Slot start time must be before slot end time");
         }
 
-        availableService.validateSlotAvailability(space.getId(),requestDTO.getSlotStartTime(),requestDTO.getSlotEndTime());
+        availableService.validateSlotAvailability(space.getId(), requestDTO.getSlotStartTime(), requestDTO.getSlotEndTime());
 
         BigDecimal basePrice = space.getBasePrice();
         List<PricingRule> activeRules = pricingRuleRepo.findBySpaceIdAndActiveTrueOrderByPriorityDesc(space.getId());
@@ -147,26 +150,39 @@ public class PricingService {
             }
         }
 
-        // Calculate selected resource add-ons
+        // Calculate selected resource add-ons with support for quantities
         BigDecimal totalResourcePrice = BigDecimal.ZERO;
         List<ResourcePriceBreakdown> breakdowns = new ArrayList<>();
         long durationHours = Math.max(1, Duration.between(requestDTO.getSlotStartTime(), requestDTO.getSlotEndTime()).toHours());
 
         if (requestDTO.getResourceIds() != null && !requestDTO.getResourceIds().isEmpty()) {
-            List<Resources> resources = resourceRepo.findAllById(requestDTO.getResourceIds());
+            // Count frequency/quantity of each requested resource ID
+            Map<String, Long> resourceQuantityMap = requestDTO.getResourceIds().stream()
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
-            for (Resources resource : resources) {
-                BigDecimal cost = resource.getResourcePrice();
-                if (resource.getResourcePriceType() == ResourcePriceType.PER_HOUR) {
-                    cost = cost.multiply(BigDecimal.valueOf(durationHours));
+            List<Resources> resources = resourceRepo.findAllById(resourceQuantityMap.keySet());
+            Map<String, Resources> resourceMap = resources.stream()
+                    .collect(Collectors.toMap(Resources::getId, Function.identity()));
+
+            for (Map.Entry<String, Long> entry : resourceQuantityMap.entrySet()) {
+                Resources resource = resourceMap.get(entry.getKey());
+                if (resource != null) {
+                    long quantity = entry.getValue();
+                    BigDecimal unitCost = resource.getResourcePrice();
+
+                    if (resource.getResourcePriceType() == ResourcePriceType.PER_HOUR) {
+                        unitCost = unitCost.multiply(BigDecimal.valueOf(durationHours));
+                    }
+
+                    BigDecimal itemTotalCost = unitCost.multiply(BigDecimal.valueOf(quantity));
+                    totalResourcePrice = totalResourcePrice.add(itemTotalCost);
+
+                    breakdowns.add(ResourcePriceBreakdown.builder()
+                            .resourceId(resource.getId())
+                            .resourceName(resource.getName() + (quantity > 1 ? " (Qty: " + quantity + ")" : ""))
+                            .price(itemTotalCost)
+                            .build());
                 }
-
-                totalResourcePrice = totalResourcePrice.add(cost);
-                breakdowns.add(ResourcePriceBreakdown.builder()
-                        .resourceId(resource.getId())
-                        .resourceName(resource.getName())
-                        .price(cost)
-                        .build());
             }
         }
 
@@ -191,9 +207,6 @@ public class PricingService {
                 .success(true)
                 .build();
     }
-
-
-
 
     private boolean isRuleApplicable(PricingRule rule, LocalDateTime slotStart, LocalDateTime slotEnd) {
         DayOfWeek slotDay = DayOfWeek.valueOf(slotStart.getDayOfWeek().name());

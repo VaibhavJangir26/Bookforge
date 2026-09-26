@@ -1,6 +1,6 @@
 package com.bluewave.booking.dto;
 
-import com.bluewave.dto.BookingStatus;
+import com.bluewave.constants.BookingStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

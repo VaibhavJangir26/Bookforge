@@ -1,6 +1,6 @@
 package com.bluewave.model;
 
-import com.bluewave.dto.PaymentStatus;
+import com.bluewave.constants.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,6 +1,6 @@
 package com.bluewave.kafka;
 
-import com.bluewave.dto.PaymentSuccessfulEvent;
+import com.bluewave.kafka_common_event.PaymentSuccessfulEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

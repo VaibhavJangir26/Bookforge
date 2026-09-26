@@ -1,5 +1,6 @@
 package com.bluewave.dto;
 
+import com.bluewave.constants.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

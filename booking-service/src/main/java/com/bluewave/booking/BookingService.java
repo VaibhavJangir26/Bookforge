@@ -4,6 +4,7 @@ import com.bluewave.booking.client.CatalogClient;
 import com.bluewave.booking.dto.*;
 import com.bluewave.booking.model.Booking;
 import com.bluewave.booking.model.BookingResource;
+import com.bluewave.constants.BookingStatus;
 import com.bluewave.dto.*;
 import com.bluewave.exception.ResourceConflictException;
 import com.bluewave.exception.ResourceNotFoundException;
@@ -23,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;

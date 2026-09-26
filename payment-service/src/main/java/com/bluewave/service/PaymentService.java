@@ -1,9 +1,12 @@
 package com.bluewave.service;
 
 import com.bluewave.client.BookingClient;
+import com.bluewave.constants.BookingStatus;
+import com.bluewave.constants.PaymentStatus;
 import com.bluewave.dto.*;
 import com.bluewave.exception.ResourceNotFoundException;
 import com.bluewave.kafka.KafkaPaymentEventPublisher;
+import com.bluewave.kafka_common_event.PaymentSuccessfulEvent;
 import com.bluewave.model.Payment;
 import com.bluewave.repo.PaymentRepo;
 import com.google.gson.JsonSyntaxException;

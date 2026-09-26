@@ -7,6 +7,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -34,7 +35,7 @@ public class CreateBookingRequestDTO {
     @NotNull(message = "Slot end time is required")
     private LocalDateTime slotEndTime;
 
-    private List<BookingResourceRequestDTO> bookingResourceItem;
+    private List<BookingResourceRequestDTO> bookingResourceItem=new ArrayList<>();
 
 
 

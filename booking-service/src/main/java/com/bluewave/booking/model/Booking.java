@@ -1,6 +1,6 @@
 package com.bluewave.booking.model;
 
-import com.bluewave.dto.BookingStatus;
+import com.bluewave.constants.BookingStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

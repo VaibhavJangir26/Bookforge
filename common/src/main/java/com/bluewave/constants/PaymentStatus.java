@@ -1,4 +1,4 @@
-package com.bluewave.dto;
+package com.bluewave.constants;
 
 public enum PaymentStatus {
     PENDING,
