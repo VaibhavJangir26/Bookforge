@@ -66,4 +66,30 @@ public class ResourceController {
         String message = resourceService.deleteResource(resourceId);
         return ResponseEntity.ok(Map.of("message", message));
     }
+
+    @PostMapping("/{resourceId}/deduct-stock")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER', 'CUSTOMER')")
+    public ResponseEntity<CommonApiResponse<String>> deductResourceStock(
+            @PathVariable String resourceId,
+            @RequestParam int quantity) {
+        resourceService.deductResourceQuantity(resourceId, quantity);
+        return ResponseEntity.ok(CommonApiResponse.<String>builder()
+                .success(true)
+                .message("Stock deducted successfully")
+                .data("Updated")
+                .build());
+    }
+
+    @PostMapping("/{resourceId}/restore-stock")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER', 'CUSTOMER')")
+    public ResponseEntity<CommonApiResponse<String>> restoreResourceStock(
+            @PathVariable String resourceId,
+            @RequestParam int quantity) {
+        resourceService.restoreResourceQuantity(resourceId, quantity);
+        return ResponseEntity.ok(CommonApiResponse.<String>builder()
+                .success(true)
+                .message("Stock restored successfully")
+                .data("Restored")
+                .build());
+    }
 }

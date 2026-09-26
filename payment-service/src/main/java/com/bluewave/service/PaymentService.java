@@ -37,7 +37,7 @@ public class PaymentService {
     private final BookingClient bookingClient;
     private final KafkaPaymentEventPublisher eventPublisher;
 
-    @Value("${stripe.webhook.secret}")
+    @Value("${stripe.webhook.secret:}")
     private String webhookSecret;
 
     @Transactional
@@ -121,31 +121,79 @@ public class PaymentService {
         return "Webhook processed successfully";
     }
 
+    @Transactional
+    public String verifyAndConfirmOrder(String bookingId) {
+        Payment payment = paymentRepo.findByBookingId(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment record not found for bookingId: " + bookingId));
+
+        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+            return "Payment already confirmed for booking: " + bookingId;
+        }
+
+        if (payment.getStripePaymentIntentId() == null || payment.getStripePaymentIntentId().isBlank()) {
+            throw new IllegalStateException("No Stripe PaymentIntent ID associated with booking: " + bookingId);
+        }
+
+        try {
+            // Retrieve PaymentIntent directly from Stripe API
+            PaymentIntent paymentIntent = PaymentIntent.retrieve(payment.getStripePaymentIntentId());
+
+            if ("succeeded".equalsIgnoreCase(paymentIntent.getStatus())) {
+                confirmSuccessfulPayment(paymentIntent);
+                return "Payment verified and booking confirmed successfully for: " + bookingId;
+            } else if ("requires_payment_method".equalsIgnoreCase(paymentIntent.getStatus()) ||
+                    "canceled".equalsIgnoreCase(paymentIntent.getStatus())) {
+                markPaymentFailed(paymentIntent);
+                return "Payment failed or canceled for booking: " + bookingId;
+            } else {
+                return "Payment is currently in status: " + paymentIntent.getStatus();
+            }
+
+        } catch (StripeException e) {
+            log.error("Failed to verify Stripe PaymentIntent for booking {}: {}", bookingId, e.getMessage());
+            throw new RuntimeException("Stripe verification failed: " + e.getMessage());
+        }
+    }
+
     private void confirmSuccessfulPayment(PaymentIntent paymentIntent) {
         Optional<Payment> optionalPayment = paymentRepo.findByStripePaymentIntentId(paymentIntent.getId());
         if (optionalPayment.isPresent()) {
             Payment payment = optionalPayment.get();
 
-            // Idempotency check: If already processed, skip
+            // Idempotency check: If already SUCCESS, skip redundant operations
             if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) return;
 
             payment.setPaymentStatus(PaymentStatus.SUCCESS);
             paymentRepo.save(payment);
 
-            // Publish success event so BookingService can release the 5-min lock and update to CONFIRMED
-            PaymentSuccessfulEvent event = new PaymentSuccessfulEvent(
-                    payment.getId(),
-                    payment.getBookingId(),
-                    payment.getCustomerId(),
-                    payment.getStripePaymentIntentId(),
-                    payment.getAmount(),
-                    LocalDateTime.now()
-            );
-            eventPublisher.publishPaymentSuccessfulEvent(event);
+            // 1. Direct synchronous status update to Booking Service via OpenFeign
+            try {
+                UpdateBookingStatusRequestDTO updateDTO = new UpdateBookingStatusRequestDTO();
+                updateDTO.setBookingStatus(BookingStatus.CONFIRMED);
+                bookingClient.updateBookingStatus(payment.getBookingId(), updateDTO);
+                log.info("Synchronously updated booking {} status to CONFIRMED", payment.getBookingId());
+            } catch (Exception ex) {
+                log.warn("Direct update to booking-service failed (will rely on Kafka/retry): {}", ex.getMessage());
+            }
 
-            log.info("Payment confirmed and Kafka event dispatched for bookingId: {}", payment.getBookingId());
+            // 2. Publish Kafka success event for downstream asynchronous consumers
+            try {
+                PaymentSuccessfulEvent event = new PaymentSuccessfulEvent(
+                        payment.getId(),
+                        payment.getBookingId(),
+                        payment.getCustomerId(),
+                        payment.getStripePaymentIntentId(),
+                        payment.getAmount(),
+                        LocalDateTime.now()
+                );
+                eventPublisher.publishPaymentSuccessfulEvent(event);
+                log.info("Payment confirmed and Kafka event dispatched for bookingId: {}", payment.getBookingId());
+            } catch (Exception kEx) {
+                log.warn("Kafka event dispatch failed: {}", kEx.getMessage());
+            }
+
         } else {
-            log.warn("Received successful payment webhook for unknown PaymentIntent: {}", paymentIntent.getId());
+            log.warn("Received successful payment confirmation for unknown PaymentIntent: {}", paymentIntent.getId());
         }
     }
 
@@ -153,10 +201,10 @@ public class PaymentService {
         paymentRepo.findByStripePaymentIntentId(paymentIntent.getId()).ifPresent(payment -> {
             payment.setPaymentStatus(PaymentStatus.FAILED);
             payment.setFailureReason(paymentIntent.getLastPaymentError() != null ?
-                    paymentIntent.getLastPaymentError().getMessage() : "Unknown gateway decline");
+                    paymentIntent.getLastPaymentError().getMessage() : "Payment was not completed successfully");
             paymentRepo.save(payment);
 
-            log.warn("Payment failed for bookingId: {} due to: {}", payment.getBookingId(), payment.getFailureReason());
+            log.warn("Payment marked FAILED for bookingId: {} due to: {}", payment.getBookingId(), payment.getFailureReason());
         });
     }
 
@@ -165,9 +213,33 @@ public class PaymentService {
         Payment payment = paymentRepo.findByBookingId(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("No payment record found for bookingId: " + bookingId));
 
+        // Idempotency: If already refunded, do not attempt to refund again
+        if (payment.getPaymentStatus() == PaymentStatus.REFUNDED) {
+            log.info("Payment for bookingId {} is already refunded.", bookingId);
+            return;
+        }
+
+        // If status in database is not SUCCESS, check directly with Stripe
         if (payment.getPaymentStatus() != PaymentStatus.SUCCESS) {
-            log.warn("Cannot refund payment in status {} for bookingId: {}", payment.getPaymentStatus(), bookingId);
-            return; // Only SUCCESS payments can be refunded
+            if (payment.getStripePaymentIntentId() != null && !payment.getStripePaymentIntentId().isBlank()) {
+                try {
+                    PaymentIntent intent = PaymentIntent.retrieve(payment.getStripePaymentIntentId());
+                    if ("succeeded".equalsIgnoreCase(intent.getStatus())) {
+                        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+                        paymentRepo.save(payment);
+                        log.info("Synced PaymentIntent {} status to SUCCESS from Stripe for bookingId {}", intent.getId(), bookingId);
+                    } else {
+                        log.warn("Cannot refund PaymentIntent in status {} for bookingId: {}", intent.getStatus(), bookingId);
+                        return;
+                    }
+                } catch (StripeException se) {
+                    log.error("Could not retrieve PaymentIntent from Stripe: {}", se.getMessage());
+                    return;
+                }
+            } else {
+                log.warn("Cannot refund payment in status {} without PaymentIntent for bookingId: {}", payment.getPaymentStatus(), bookingId);
+                return;
+            }
         }
 
         try {
@@ -175,16 +247,25 @@ public class PaymentService {
                     .setPaymentIntent(payment.getStripePaymentIntentId())
                     .build();
 
-            // Synchronously call Stripe to process the refund
             Refund.create(params);
 
             payment.setPaymentStatus(PaymentStatus.REFUNDED);
             paymentRepo.save(payment);
 
-            eventPublisher.publishPaymentRefundEvent(bookingId, payment.getStripePaymentIntentId());
+            try {
+                eventPublisher.publishPaymentRefundEvent(bookingId, payment.getStripePaymentIntentId());
+            } catch (Exception kEx) {
+                log.warn("Kafka refund event dispatch failed: {}", kEx.getMessage());
+            }
             log.info("Stripe refund processed successfully for bookingId: {}", bookingId);
 
         } catch (StripeException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("already been refunded")) {
+                log.info("Payment was already refunded in Stripe for bookingId {}", bookingId);
+                payment.setPaymentStatus(PaymentStatus.REFUNDED);
+                paymentRepo.save(payment);
+                return;
+            }
             log.error("Failed to process Stripe refund for bookingId {}: {}", bookingId, e.getMessage());
             throw new RuntimeException("Stripe refund failed: " + e.getMessage());
         }
@@ -192,15 +273,7 @@ public class PaymentService {
 
     @Transactional
     public String refundPayment(PaymentRequestDTO dto) {
-        // Manual override or API-triggered refund
         processAutomatedRefund(dto.getBookingId());
         return "Payment refund completed successfully for booking: " + dto.getBookingId();
-    }
-
-    @Transactional(readOnly = true)
-    public String verifyAndConfirmOrder(String bookingId) {
-        Payment payment = paymentRepo.findByBookingId(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment record not found for bookingId: " + bookingId));
-        return "Current payment status for booking " + bookingId + " is: " + payment.getPaymentStatus();
     }
 }

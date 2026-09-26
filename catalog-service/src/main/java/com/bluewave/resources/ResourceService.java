@@ -196,6 +196,31 @@ public class ResourceService {
     }
 
     @Transactional
+    public void deductResourceQuantity(String resourceId, int quantityToDeduct) {
+        Resources resource = resourceRepo.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + resourceId));
+
+        int currentStock = resource.getResourceCountQuantity();
+        if (currentStock < quantityToDeduct) {
+            throw new IllegalStateException("Insufficient inventory for resource: " + resource.getName());
+        }
+
+        resource.setResourceCountQuantity(currentStock - quantityToDeduct);
+        resourceRepo.save(resource);
+    }
+
+    @Transactional
+    public void restoreResourceQuantity(String resourceId, int quantityToRestore) {
+        Resources resource = resourceRepo.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + resourceId));
+
+        resource.setResourceCountQuantity(resource.getResourceCountQuantity() + quantityToRestore);
+        resourceRepo.save(resource);
+    }
+
+
+
+    @Transactional
     public String deleteResource(String resourceId) {
         Resources resources = resourceRepo.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + resourceId));

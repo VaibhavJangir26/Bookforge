@@ -2,6 +2,7 @@ package com.bluewave.booking;
 
 import com.bluewave.booking.client.CatalogClient;
 import com.bluewave.booking.dto.*;
+import com.bluewave.booking.dto.UpdateBookingStatusRequestDTO;
 import com.bluewave.booking.model.Booking;
 import com.bluewave.booking.model.BookingResource;
 import com.bluewave.constants.BookingStatus;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -54,24 +56,24 @@ public class BookingService {
         }
 
         // the booking must in future past booking before current time is not allowed
-        if(requestDTO.getSlotStartTime().isBefore(LocalDateTime.now())){
+        if (requestDTO.getSlotStartTime().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("booking can't be in past time");
         }
         // helper variable
-        String spaceId=requestDTO.getSpaceId();
-        String customerId=UserContext.getUserId();
-        LocalDateTime startTime=requestDTO.getSlotStartTime();
-        LocalDateTime endTime=requestDTO.getSlotEndTime();
+        String spaceId = requestDTO.getSpaceId();
+        String customerId = UserContext.getUserId();
+        LocalDateTime startTime = requestDTO.getSlotStartTime();
+        LocalDateTime endTime = requestDTO.getSlotEndTime();
 
         // now we create the redisson spin lock
         // to prevent 100s of concurrent request to access the db
-        String lockKey=String.format("lock:space:%s:time:%s_%s",spaceId,startTime,endTime);
-        RLock lock=redissonClient.getLock(lockKey);
-        boolean isAcquired=false;
+        String lockKey = String.format("lock:space:%s:time:%s_%s", spaceId, startTime, endTime);
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean isAcquired = false;
         try {
             // Wait up to 0 seconds (fail immediately if someone else is trying to book this exact slot).
             // Lease time 3 seconds (auto-releases if this server crashes).
-            isAcquired=lock.tryLock(0,3, TimeUnit.SECONDS);
+            isAcquired = lock.tryLock(0, 3, TimeUnit.SECONDS);
             if (!isAcquired) {
                 throw new ResourceConflictException("this slot is currently being held or booked by someone else, please try again");
             }
@@ -79,28 +81,36 @@ public class BookingService {
             // 3. Fast-Path Redis Hold Verification
             // Checks if a 5-minute checkout hold already exists for this exact time slot.
             // it will prevent new user to book with the time window fot that 5 min
-            String holdKey=String.format("hold:space:%s:time:%s_%s",spaceId,startTime,endTime);
-            RBucket<String> holdBucket=redissonClient.getBucket(holdKey);
-            if(holdBucket.isExists()){
+            String holdKey = String.format("hold:space:%s:time:%s_%s", spaceId, startTime, endTime);
+            RBucket<String> holdBucket = redissonClient.getBucket(holdKey);
+            if (holdBucket.isExists()) {
                 throw new ResourceConflictException("this slot is currently locked for checkout by another user");
             }
 
             // 4. PostgreSQL Overlap & Blackout Validation
             // Ensures no overlapping bookings slipped through during a previous checkout.
-            List<Booking> overlappingBooking=bookingRepo.findOverlappingActiveBookings(spaceId,startTime,endTime);
-            if(!overlappingBooking.isEmpty()){
+            List<Booking> overlappingBooking = bookingRepo.findOverlappingActiveBookings(spaceId, startTime, endTime);
+            if (!overlappingBooking.isEmpty()) {
                 throw new ResourceConflictException("slot is already booked, slot is no longer available");
             }
 
             // 5. Synchronous Feign Call (Validation & Dynamic Pricing)
             // Relies on Catalog Service as the source of truth for pricing and blackouts.
-            List<String> resourceId=requestDTO.getBookingResourceItem()!=null?requestDTO.getBookingResourceItem().stream().map(BookingResourceRequestDTO::getResourceId).toList():List.of();
-            CalculatePriceRequestDTO priceReq= CalculatePriceRequestDTO.builder()
+            // FIX: Multiply resourceId by quantity so full inventory cost is calculated!
+            List<String> resourceId = requestDTO.getBookingResourceItem() != null ?
+                    requestDTO.getBookingResourceItem().stream()
+                            .filter(dto -> dto.getResourceId() != null)
+                            .flatMap(dto -> Collections.nCopies(Math.max(1, dto.getQuantity() != null ? dto.getQuantity() : 1), dto.getResourceId()).stream())
+                            .toList()
+                    : List.of();
+
+            CalculatePriceRequestDTO priceReq = CalculatePriceRequestDTO.builder()
                     .spaceId(spaceId)
                     .slotStartTime(startTime)
                     .slotEndTime(endTime)
                     .resourceIds(resourceId)
                     .build();
+
             CommonApiResponse<CalculatePriceResponseDTO> priceResp = catalogClient.calculatePrice(priceReq);
             if (priceResp == null || !priceResp.isSuccess() || priceResp.getData() == null) {
                 throw new IllegalArgumentException("failed to validate slot availability and calculate pricing");
@@ -168,7 +178,6 @@ public class BookingService {
                     .timestamp(LocalDateTime.now())
                     .build();
 
-
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Process interrupted while acquiring booking lock");
@@ -223,11 +232,20 @@ public class BookingService {
             refundStatusIndicator = "[NO CHARGE - CANCELLED BEFORE PAYMENT] ";
         }
 
+        if (booking.getStatus() == BookingStatus.CONFIRMED && booking.getBookingResourceList() != null) {
+            for (var resItem : booking.getBookingResourceList()) {
+                try {
+                    catalogClient.restoreResourceStock(resItem.getResourceId(), resItem.getQuantity());
+                    log.info("Restored {} units of resource {} on cancellation", resItem.getQuantity(), resItem.getResourceId());
+                } catch (Exception ex) {
+                    log.error("Failed to restore stock for resource {}: {}", resItem.getResourceId(), ex.getMessage());
+                }
+            }
+        }
+
         // 5. ACID Database Commit
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationReason(refundStatusIndicator + requestDTO.getCancellationReason());
-        // Note: We don't need bookingRepo.save(booking) here because 'booking' is
-        // part of the active Hibernate persistence context under @Transactional.
 
         // 6. Release Redis Inventory Hold
         // If the booking was in PENDING_PAYMENT, we must immediately delete the 5-minute hold key
@@ -236,8 +254,6 @@ public class BookingService {
         redissonClient.getBucket(holdKey).delete();
 
         // 7. Publish Kafka Event
-        // The Payment-Service listens to this event. If it sees it was CONFIRMED and
-        // cancelled > 24 hours prior (by comparing dates in the event), it executes the gateway refund.
         BookingCancelledEvent event = new BookingCancelledEvent(
                 booking.getId(),
                 booking.getCustomerId(),
@@ -259,7 +275,6 @@ public class BookingService {
         }
     }
 
-
     @Transactional(readOnly = true)
     public CommonApiResponse<List<BookingResponseDTO>> getAllMyBookingHistory() {
         String currentUserId = UserContext.getUserId();
@@ -280,7 +295,6 @@ public class BookingService {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
-
 
     @Transactional(readOnly = true)
     public CommonApiResponse<BookingResponseDTO> getSingleBookingDetails(String bookingId) {
@@ -307,7 +321,6 @@ public class BookingService {
                 .build();
     }
 
-
     @Transactional(readOnly = true)
     public CommonApiResponse<List<BookingResponseDTO>> getBookingsBySpace(String spaceId) {
         if (!UserContext.isAdmin()) {
@@ -332,7 +345,7 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + bookingId));
 
         booking.setStatus(requestDTO.getBookingStatus());
-        log.info("booking {} status transitioned to {} by admin", bookingId, requestDTO.getBookingStatus());
+        log.info("booking {} status transitioned to {}", bookingId, requestDTO.getBookingStatus());
 
         return "booking status updated successfully";
     }
@@ -383,6 +396,7 @@ public class BookingService {
                 .build();
     }
 }
+
 
 /*
 * 1. The createBooking Flow (The Checkout Gate)

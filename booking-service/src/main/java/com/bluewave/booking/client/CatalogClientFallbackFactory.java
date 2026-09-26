@@ -54,6 +54,30 @@ public class CatalogClientFallbackFactory implements FallbackFactory<CatalogClie
                         .data(null)
                         .build();
             }
+
+            @Override
+            public CommonApiResponse<String> deductResourceStock(String resourceId, int quantity) {
+                log.error("CatalogClient fallback triggered for deductResourceStock on resource {}. Error: {}", resourceId, cause.getMessage());
+                return CommonApiResponse.<String>builder()
+                        .success(false)
+                        .status(Integer.valueOf(String.valueOf(HttpStatus.SERVICE_UNAVAILABLE.value())))
+                        .message("Catalog service is currently unavailable for stock deduction: " + cause.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .data(null)
+                        .build();
+            }
+
+            @Override
+            public CommonApiResponse<String> restoreResourceStock(String resourceId, int quantity) {
+                log.error("CatalogClient fallback triggered for restoreResourceStock on resource {}. Error: {}", resourceId, cause.getMessage());
+                return CommonApiResponse.<String>builder()
+                        .success(false)
+                        .status(Integer.valueOf(String.valueOf(HttpStatus.SERVICE_UNAVAILABLE.value())))
+                        .message("Catalog service is currently unavailable for stock restoration: " + cause.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .data(null)
+                        .build();
+            }
         };
     }
 }

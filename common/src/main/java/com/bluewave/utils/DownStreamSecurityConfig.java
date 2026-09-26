@@ -68,7 +68,9 @@ public class DownStreamSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (Swagger, OpenAPI, Actuator health checks)
                         .requestMatchers(
-                                "/actuator/**"
+                                "/actuator/**",
+                                "/api/v1/resources/*/deduct-stock",
+                                "/api/v1/resources/*/restore-stock"
                         ).permitAll()
 
                         // =======================================================================

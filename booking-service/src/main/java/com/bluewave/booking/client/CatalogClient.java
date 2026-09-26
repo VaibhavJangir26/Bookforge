@@ -26,4 +26,14 @@ public interface CatalogClient {
 
     @GetMapping("/api/v1/spaces/{spaceId}")
     CommonApiResponse<ResponseSpacesDTO> getSpaceById(@PathVariable("spaceId") String spaceId);
+
+    @PostMapping("/api/v1/resources/{resourceId}/deduct-stock")
+    CommonApiResponse<String> deductResourceStock(
+            @PathVariable("resourceId") String resourceId,
+            @RequestParam("quantity") int quantity);
+
+    @PostMapping("/api/v1/resources/{resourceId}/restore-stock")
+    CommonApiResponse<String> restoreResourceStock(
+            @PathVariable("resourceId") String resourceId,
+            @RequestParam("quantity") int quantity);
 }

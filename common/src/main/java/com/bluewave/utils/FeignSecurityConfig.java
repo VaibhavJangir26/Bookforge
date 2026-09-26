@@ -78,6 +78,11 @@ public class FeignSecurityConfig {
                     if (principal.getRoles() != null && !principal.getRoles().isEmpty()) {
                         template.header(GatewayHeaderSecurityFilter.HEADER_USER_ROLES, String.join(",", principal.getRoles()));
                     }
+                } else {
+                    // System-to-system asynchronous internal call (e.g. Kafka event listener thread)
+                    template.header(GatewayHeaderSecurityFilter.HEADER_USER_ID, "system-internal");
+                    template.header(GatewayHeaderSecurityFilter.HEADER_USER_NAME, "system");
+                    template.header(GatewayHeaderSecurityFilter.HEADER_USER_ROLES, "ROLE_ADMIN,ROLE_PROVIDER,ROLE_CUSTOMER");
                 }
             }
         };
