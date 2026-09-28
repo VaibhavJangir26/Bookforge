@@ -1,12 +1,10 @@
 package com.bluewave.service;
 
-import com.bluewave.dto.ApplyProviderRequestDTO;
-import com.bluewave.dto.CommonApiResponse;
-import com.bluewave.dto.ProfileResponseDTO;
-import com.bluewave.dto.ProfileUpdateRequestDTO;
+import com.bluewave.dto.*;
 import com.bluewave.entity.Profile;
 import com.bluewave.entity.Users;
 import com.bluewave.exception.BadRequestException;
+import com.bluewave.exception.ResourceNotFoundException;
 import com.bluewave.repo.UsersRepo;
 import com.bluewave.utils.ProviderStatus;
 import com.bluewave.utils.SecurityPrincipal;
@@ -28,12 +26,11 @@ public class ProfileService {
     private final SecurityPrincipal securityPrincipal;
     private final UsersRepo usersRepo;
 
-
     @Cacheable(value = "profile", key = "@securityPrincipal.getCurrentLoginUsername()")
     @Transactional(readOnly = true)
     public CommonApiResponse<ProfileResponseDTO> currentUserProfile() {
-        Users users=securityPrincipal.getCurrentLoginUserEntity();
-        ProfileResponseDTO dto=mapToResponseDTO(users);
+        Users users = securityPrincipal.getCurrentLoginUserEntity();
+        ProfileResponseDTO dto = mapToResponseDTO(users);
         return CommonApiResponse.<ProfileResponseDTO>builder()
                 .message("Profile fetched successfully")
                 .data(dto)
@@ -41,14 +38,13 @@ public class ProfileService {
                 .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .build();
-
     }
 
     @Transactional
     @CacheEvict(value = "profile", key = "@securityPrincipal.getCurrentLoginUsername()")
     public CommonApiResponse<ProfileResponseDTO> updateUserProfile(ProfileUpdateRequestDTO dto) {
-        Users users=securityPrincipal.getCurrentLoginUserEntity();
-        Profile profile=users.getProfile();
+        Users users = securityPrincipal.getCurrentLoginUserEntity();
+        Profile profile = users.getProfile();
         if (profile == null) {
             profile = new Profile();
         }
@@ -74,9 +70,7 @@ public class ProfileService {
                 .status(HttpStatus.OK.value())
                 .timestamp(LocalDateTime.now())
                 .build();
-
     }
-
 
     @Transactional
     @CacheEvict(value = "profile", key = "@securityPrincipal.getCurrentLoginUsername()")
@@ -128,6 +122,42 @@ public class ProfileService {
                 .address(profile != null ? profile.getAddress() : null)
                 .createdAt(profile != null ? profile.getUpdatedAt() : null)
                 .updatedAt(profile != null ? profile.getUpdatedAt() : null)
+                .build();
+    }
+
+    private UserPersonalDetailResponseDTO mapToUserPersonalDetailResponseDTO(Users user) {
+        Profile profile = user.getProfile();
+        UsersAddress userAddress = null;
+        if (profile != null && profile.getAddress() != null) {
+            userAddress = UsersAddress.builder()
+                    .city(profile.getAddress().getCity())
+                    .state(profile.getAddress().getState())
+                    .postcode(profile.getAddress().getPostcode())
+                    .address(profile.getAddress().getAddress())
+                    .build();
+        }
+
+        return UserPersonalDetailResponseDTO.builder()
+                .userId(user.getId())
+                .profileId(profile != null ? profile.getId() : null)
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(profile != null ? profile.getFullName() : null)
+                .mobileNo(profile != null ? profile.getMobileNo() : null)
+                .address(userAddress)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public CommonApiResponse<UserPersonalDetailResponseDTO> getUserById(String userId) {
+        Users users = usersRepo.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User details not found with id: " + userId));
+        return CommonApiResponse.<UserPersonalDetailResponseDTO>builder()
+                .data(mapToUserPersonalDetailResponseDTO(users))
+                .success(true)
+                .message("User details fetched successfully")
+                .status(HttpStatus.OK.value())
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 }

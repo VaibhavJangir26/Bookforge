@@ -1,9 +1,6 @@
 package com.bluewave.controller;
 
-import com.bluewave.dto.ApplyProviderRequestDTO;
-import com.bluewave.dto.CommonApiResponse;
-import com.bluewave.dto.ProfileResponseDTO;
-import com.bluewave.dto.ProfileUpdateRequestDTO;
+import com.bluewave.dto.*;
 import com.bluewave.service.ProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,22 +15,31 @@ public class ProfileController {
 
     private final ProfileService profileService;
 
-
-    @GetMapping("/me")
-    public ResponseEntity<CommonApiResponse<ProfileResponseDTO>> currentUserProfile(){
+    @GetMapping
+    @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN','PROVIDER')")
+    public ResponseEntity<CommonApiResponse<ProfileResponseDTO>> getCurrentUserProfile() {
         return ResponseEntity.ok(profileService.currentUserProfile());
     }
 
-    @PatchMapping("/me")
-    public ResponseEntity<CommonApiResponse<ProfileResponseDTO>> updateUserProfile(@Valid @RequestBody ProfileUpdateRequestDTO dto){
+    @PatchMapping
+    @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN','PROVIDER')")
+    public ResponseEntity<CommonApiResponse<ProfileResponseDTO>> updateUserProfile(
+            @Valid @RequestBody ProfileUpdateRequestDTO dto
+    ) {
         return ResponseEntity.ok(profileService.updateUserProfile(dto));
     }
 
     @PostMapping("/apply-provider")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<CommonApiResponse<ProfileResponseDTO>> applyToBecomeProvider(
-            @Valid @RequestBody ApplyProviderRequestDTO dto) {
+            @Valid @RequestBody ApplyProviderRequestDTO dto
+    ) {
         return ResponseEntity.ok(profileService.applyToBecomeProvider(dto));
     }
 
+    @GetMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('PROVIDER', 'ADMIN', 'CUSTOMER')")
+    public ResponseEntity<CommonApiResponse<UserPersonalDetailResponseDTO>> getUserById(@PathVariable String userId) {
+        return ResponseEntity.ok(profileService.getUserById(userId));
+    }
 }

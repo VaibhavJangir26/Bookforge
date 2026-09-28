@@ -30,4 +30,6 @@ public class BookingResponseDTO {
     private String cancellationReason;
     private List<BookingResourceResponseDTO> resourceItems;
 
+    private UserPersonalDetailResponseDTO userPersonalDetailResponseDTO;
+
 }

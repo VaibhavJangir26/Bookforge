@@ -1,6 +1,7 @@
 package com.bluewave.booking;
 
 import com.bluewave.booking.client.CatalogClient;
+import com.bluewave.booking.client.AuthClient;
 import com.bluewave.booking.dto.*;
 import com.bluewave.booking.dto.UpdateBookingStatusRequestDTO;
 import com.bluewave.booking.model.Booking;
@@ -38,6 +39,7 @@ public class BookingService {
     private final BookingRepo bookingRepo;
     private final RedissonClient redissonClient;
     private final CatalogClient catalogClient;
+    private final AuthClient authClient;
     private final BookingEventPublisher bookingEventPublisher;
 
     @Transactional
@@ -96,7 +98,7 @@ public class BookingService {
 
             // 5. Synchronous Feign Call (Validation & Dynamic Pricing)
             // Relies on Catalog Service as the source of truth for pricing and blackouts.
-            // FIX: Multiply resourceId by quantity so full inventory cost is calculated!
+            //  Multiply resourceId by quantity so full inventory cost is calculated!
             List<String> resourceId = requestDTO.getBookingResourceItem() != null ?
                     requestDTO.getBookingResourceItem().stream()
                             .filter(dto -> dto.getResourceId() != null)
@@ -370,6 +372,18 @@ public class BookingService {
     }
 
     private BookingResponseDTO bookingResponseMapToDTO(Booking booking) {
+        UserPersonalDetailResponseDTO userDetails = null;
+        if (booking.getCustomerId() != null && !booking.getCustomerId().isBlank()) {
+            try {
+                CommonApiResponse<UserPersonalDetailResponseDTO> userResp = authClient.getUserById(booking.getCustomerId());
+                if (userResp != null && userResp.getData() != null) {
+                    userDetails = userResp.getData();
+                }
+            } catch (Exception ex) {
+                log.warn("Could not fetch user details for customerId {}: {}", booking.getCustomerId(), ex.getMessage());
+            }
+        }
+
         return BookingResponseDTO.builder()
                 .id(booking.getId())
                 .customerId(booking.getCustomerId())
@@ -393,6 +407,7 @@ public class BookingService {
                                 .build()
                         ).toList()
                         : List.of())
+                .userPersonalDetailResponseDTO(userDetails)
                 .build();
     }
 }
