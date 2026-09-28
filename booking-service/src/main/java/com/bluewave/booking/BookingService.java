@@ -2,6 +2,7 @@ package com.bluewave.booking;
 
 import com.bluewave.booking.client.CatalogClient;
 import com.bluewave.booking.client.AuthClient;
+import com.bluewave.booking.config.FeePolicyConfig;
 import com.bluewave.booking.dto.*;
 import com.bluewave.booking.dto.UpdateBookingStatusRequestDTO;
 import com.bluewave.booking.model.Booking;
@@ -41,6 +42,7 @@ public class BookingService {
     private final CatalogClient catalogClient;
     private final AuthClient authClient;
     private final BookingEventPublisher bookingEventPublisher;
+    private final FeePolicyConfig feePolicyConfig;
 
     @Transactional
     public CommonApiResponse<BookingResponseDTO> createBooking(CreateBookingRequestDTO requestDTO) {
@@ -225,7 +227,7 @@ public class BookingService {
             // Check if current time is strictly before 24 hours of the slot start time
             if (LocalDateTime.now().isBefore(booking.getSlotStartTime().minusHours(24))) {
                 isEligibleForRefund = true;
-                refundStatusIndicator = "[FULL REFUND APPROVED] ";
+                refundStatusIndicator = String.format("[%s%% PARTIAL REFUND APPROVED] ", feePolicyConfig.getCustomerRefundPercent());
             } else {
                 refundStatusIndicator = "[NO REFUND - LATE CANCELLATION] ";
             }
@@ -269,7 +271,14 @@ public class BookingService {
 
         // 8. Return appropriate user feedback
         if (isEligibleForRefund) {
-            return "Booking cancelled successfully. A full refund has been initiated to your original payment method.";
+            BigDecimal refundAmt = booking.getTotalAmount()
+                    .multiply(feePolicyConfig.getCustomerRefundPercent())
+                    .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            return String.format("Booking cancelled successfully. An %s%% refund ($%s) has been initiated to your original payment method (%s%% retained for venue provider, %s%% platform processing fee).",
+                    feePolicyConfig.getCustomerRefundPercent(),
+                    refundAmt,
+                    feePolicyConfig.getProviderRetainedPercent(),
+                    feePolicyConfig.getPlatformRetainedPercent());
         } else if (booking.getStatus() == BookingStatus.PENDING_PAYMENT) {
             return "Checkout session cancelled successfully.";
         } else {

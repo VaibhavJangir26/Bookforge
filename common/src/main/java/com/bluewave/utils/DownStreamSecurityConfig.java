@@ -70,7 +70,8 @@ public class DownStreamSecurityConfig {
                         .requestMatchers(
                                 "/actuator/**",
                                 "/api/v1/resources/*/deduct-stock",
-                                "/api/v1/resources/*/restore-stock"
+                                "/api/v1/resources/*/restore-stock",
+                                "/api/v1/profile/internal/**"
                         ).permitAll()
 
                         // =======================================================================

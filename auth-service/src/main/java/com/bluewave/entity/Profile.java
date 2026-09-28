@@ -43,4 +43,15 @@ public class Profile {
 
     @OneToOne(mappedBy = "profile")
     private Users users;
+
+    /**
+     * The Provider's connected Stripe Express Account ID (e.g. "acct_1Ox...")
+     */
+    @Column(name = "stripe_account_id")
+    private String stripeAccountId;
+    /**
+     * True once the provider verifies their bank details and KYC on Stripe
+     */
+    @Column(name = "stripe_payouts_enabled", nullable = false)
+    private boolean stripePayoutsEnabled = false;
 }

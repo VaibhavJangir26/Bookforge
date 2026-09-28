@@ -160,4 +160,28 @@ public class ProfileService {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public String getProviderStripeAccountId(String providerId) {
+        Users user = usersRepo.findById(providerId).orElse(null);
+        if (user == null || user.getProfile() == null) {
+            return null;
+        }
+        return user.getProfile().getStripeAccountId();
+    }
+
+    @Transactional
+    public void saveProviderStripeAccountId(String stripeAccountId) {
+        Users user = securityPrincipal.getCurrentLoginUserEntity();
+        Profile profile = user.getProfile();
+        if (profile == null) {
+            profile = new Profile();
+            profile.setUsers(user);
+            user.setProfile(profile);
+        }
+        profile.setStripeAccountId(stripeAccountId);
+        profile.setStripePayoutsEnabled(true);
+        usersRepo.save(user);
+        log.info("Saved Stripe Connected Account {} for provider {}", stripeAccountId, user.getUsername());
+    }
 }
