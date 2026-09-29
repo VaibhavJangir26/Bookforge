@@ -16,6 +16,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.bluewave.config.RedisCacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,6 +53,7 @@ public class ResourceService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "'all_resources'")
     public CommonApiResponse<ResourceResponseDTO> createResource(CreateResourceRequestDTO requestDTO, List<MultipartFile> resourceImages) {
         Space space = spaceRepo.findById(requestDTO.getSpaceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Space not found with id: " + requestDTO.getSpaceId()));
@@ -89,6 +94,7 @@ public class ResourceService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "'all_resources'")
     public CommonApiResponse<List<ResourceResponseDTO>> getAllResource() {
         List<ResourceResponseDTO> dtos = resourceRepo.findAll().stream()
                 .map(this::mapToDto)
@@ -104,6 +110,7 @@ public class ResourceService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "'space_' + #spaceId")
     public CommonApiResponse<List<ResourceResponseDTO>> getResourcesBySpaceId(String spaceId) {
         if (!spaceRepo.existsById(spaceId)) {
             throw new ResourceNotFoundException("Space not found with id: " + spaceId);
@@ -123,6 +130,7 @@ public class ResourceService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "#resourceId")
     public CommonApiResponse<ResourceResponseDTO> getResourceById(String resourceId) {
         Resources resource = resourceRepo.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + resourceId));
@@ -137,6 +145,10 @@ public class ResourceService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "#resourceId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "'all_resources'")
+    })
     public CommonApiResponse<ResourceResponseDTO> updateResource(String resourceId, UpdateResourceRequestDTO requestDTO, List<MultipartFile> updateResourceImg) {
         Resources exists = resourceRepo.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + resourceId));
@@ -221,6 +233,10 @@ public class ResourceService {
 
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "#resourceId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_RESOURCE_DETAILS, key = "'all_resources'")
+    })
     public String deleteResource(String resourceId) {
         Resources resources = resourceRepo.findById(resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + resourceId));

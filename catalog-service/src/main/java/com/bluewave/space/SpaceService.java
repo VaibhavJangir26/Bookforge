@@ -16,6 +16,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.bluewave.config.RedisCacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,6 +51,7 @@ public class SpaceService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "'all_spaces'")
     public CommonApiResponse<ResponseSpacesDTO> createNewSpace(CreateSpaceRequestDTO requestDTO,List<MultipartFile> images) {
         Venue venue = venueRepo.findById(requestDTO.getVenueId())
                 .orElseThrow(() -> new ResourceNotFoundException("venue id not found"));
@@ -86,6 +91,10 @@ public class SpaceService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "#spaceId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "'all_spaces'")
+    })
     public CommonApiResponse<ResponseSpacesDTO> updateSpaceDetails(UpdateSpaceRequestDTO requestDTO, String spaceId,List<MultipartFile> newImages) {
         Space exists = spaceRepo.findById(spaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("space id not found"));
@@ -144,6 +153,7 @@ public class SpaceService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "'all_spaces'")
     public CommonApiResponse<List<ResponseSpacesDTO>> getAllSpaces() {
         List<ResponseSpacesDTO> dtoList = spaceRepo.findAll().stream()
                 .map(this::mapToDTO)
@@ -159,6 +169,7 @@ public class SpaceService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "#spaceId")
     public CommonApiResponse<ResponseSpacesDTO> getSpaceDetails(String spaceId) {
         Space space = spaceRepo.findById(spaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("no space with this id"));
@@ -173,6 +184,7 @@ public class SpaceService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "'venue_' + #venueId")
     public CommonApiResponse<List<ResponseSpacesDTO>> getSpacesByVenueId(String venueId) {
         if (!venueRepo.existsById(venueId)) {
             throw new ResourceNotFoundException("venue not found with id " + venueId);
@@ -196,6 +208,10 @@ public class SpaceService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "#spaceId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_SPACE_DETAILS, key = "'all_spaces'")
+    })
     public String deleteSpace(String spaceId) {
         Space space = spaceRepo.findById(spaceId)
                 .orElseThrow(() -> new ResourceNotFoundException("space with id not found"));

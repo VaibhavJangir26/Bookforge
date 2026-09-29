@@ -16,6 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.bluewave.config.RedisCacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +44,7 @@ public class AvailableService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_AVAILABLE_DETAILS, key = "'space_' + #requestDTO.spaceId")
     public CommonApiResponse<AvailableResponseDTO> createAvailableRule(CreateAvailableRuleRequestDTO requestDTO) {
         Space space = spaceRepo.findById(requestDTO.getSpaceId()).orElseThrow(() -> new ResourceNotFoundException("space not found with id" + requestDTO.getSpaceId()));
 
@@ -73,6 +78,7 @@ public class AvailableService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_AVAILABLE_DETAILS, key = "'space_' + #requestDTO.spaceId")
     public CommonApiResponse<BlackoutSlotResponseDTO> createBlackoutSlots(CreateBlackoutSlotRequestDTO requestDTO) {
         Space space = spaceRepo.findById(requestDTO.getSpaceId()).orElseThrow(() -> new ResourceNotFoundException("space not found with id" + requestDTO.getSpaceId()));
 
@@ -100,6 +106,7 @@ public class AvailableService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_AVAILABLE_DETAILS, key = "'rules_' + #spaceId")
     public CommonApiResponse<List<AvailableResponseDTO>> getAllAvailability(String spaceId) {
         if (!spaceRepo.existsById(spaceId)) {
             throw new ResourceNotFoundException("space not found with id" + spaceId);
@@ -119,6 +126,7 @@ public class AvailableService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_AVAILABLE_DETAILS, key = "'blackouts_' + #spaceId")
     public CommonApiResponse<List<BlackoutSlotResponseDTO>> getAllBlackoutSlots(String spaceId) {
         if (!spaceRepo.existsById(spaceId)) {
             throw new ResourceNotFoundException("space not found with id" + spaceId);
@@ -138,6 +146,7 @@ public class AvailableService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_AVAILABLE_DETAILS, key = "'slots_' + #spaceId + '_' + #startDate + '_' + #endDate")
     public CommonApiResponse<List<SlotResponseDTO>> getAvailableSlots(String spaceId, LocalDate startDate, LocalDate endDate) {
         if (!spaceRepo.existsById(spaceId)) {
             throw new ResourceNotFoundException("space not found with id" + spaceId);
@@ -218,6 +227,7 @@ public class AvailableService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_AVAILABLE_DETAILS, allEntries = true)
     public String deleteAvailability(String availabilityId) {
         AvailableRule availableRule = availableRepo.findById(availabilityId).orElseThrow(() -> new ResourceNotFoundException("no availability found for id" + availabilityId));
         validateSpaceOwnership(availableRule.getSpace());
@@ -226,6 +236,7 @@ public class AvailableService {
     }
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_AVAILABLE_DETAILS, allEntries = true)
     public String deleteBlackouts(String blackoutId) {
         BlackoutSlot blackoutSlot = blackoutSlotRepo.findById(blackoutId).orElseThrow(() -> new ResourceNotFoundException("no blackout found for id" + blackoutId));
         validateSpaceOwnership(blackoutSlot.getSpace());

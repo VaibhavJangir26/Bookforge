@@ -3,10 +3,14 @@ package com.bluewave.category;
 import com.bluewave.category.dto.CategoryResponseDTO;
 import com.bluewave.category.dto.CreateCategoryRequestDTO;
 import com.bluewave.category.dto.UpdateCategoryRequestDTO;
+import com.bluewave.config.RedisCacheConfig;
 import com.bluewave.dto.CommonApiResponse;
 import com.bluewave.exception.ResourceConflictException;
 import com.bluewave.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +25,7 @@ public class CategoryService {
     private final CategoryRepo categoryRepo;
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_CATEGORY_DETAILS, key = "'all_categories'")
     public CommonApiResponse<CreateCategoryRequestDTO> createCategory(CreateCategoryRequestDTO requestDTO) {
         if (categoryRepo.existsBySlug(requestDTO.getSlug())) {
             throw new ResourceConflictException("category slug already exists");
@@ -43,6 +48,7 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_CATEGORY_DETAILS, key = "'all_categories'")
     public CommonApiResponse<List<CategoryResponseDTO>> getAllCategoryList() {
         List<CategoryResponseDTO> list = categoryRepo.findAll().stream().map(category -> CategoryResponseDTO.builder()
                 .id(category.getId())
@@ -64,6 +70,10 @@ public class CategoryService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_CATEGORY_DETAILS, key = "#requestDTO.id"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_CATEGORY_DETAILS, key = "'all_categories'")
+    })
     public CommonApiResponse<UpdateCategoryRequestDTO> updateCategory(UpdateCategoryRequestDTO requestDTO) {
         Category existingCategory = categoryRepo.findById(requestDTO.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("category not found with id " + requestDTO.getId()));
@@ -100,6 +110,7 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_CATEGORY_DETAILS, key = "#categoryId")
     public CommonApiResponse<CategoryResponseDTO> getCategoryById(String categoryId) {
         Category category = categoryRepo.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("category not found with id " + categoryId));
@@ -123,6 +134,10 @@ public class CategoryService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_CATEGORY_DETAILS, key = "#categoryId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_CATEGORY_DETAILS, key = "'all_categories'")
+    })
     public String deleteCategory(String categoryId) {
         Category category= categoryRepo.findById(categoryId).orElseThrow(()->new ResourceNotFoundException("category not found with id " + categoryId));
         categoryRepo.delete(category);

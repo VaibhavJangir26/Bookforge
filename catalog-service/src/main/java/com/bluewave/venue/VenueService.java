@@ -2,6 +2,7 @@ package com.bluewave.venue;
 
 import com.bluewave.category.Category;
 import com.bluewave.category.CategoryRepo;
+import com.bluewave.config.RedisCacheConfig;
 import com.bluewave.dto.CommonApiResponse;
 import com.bluewave.exception.ResourceConflictException;
 import com.bluewave.exception.ResourceNotFoundException;
@@ -11,6 +12,9 @@ import com.bluewave.venue.dto.UpdateVenueDetailsRequestDTO;
 import com.bluewave.venue.dto.UpdateVenueStatusDTO;
 import com.bluewave.venue.dto.VenueResponseDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,7 @@ public class VenueService {
     private final CategoryRepo categoryRepo;
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "'all_venues'")
     public CommonApiResponse<VenueResponseDTO> createVenue(CreateVenueRequestDTO requestDTO) {
         if (venueRepo.existsBySlug(requestDTO.getSlug())) {
             throw new ResourceConflictException("This venue slug already exists");
@@ -48,6 +53,10 @@ public class VenueService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "#venueId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "'all_venues'")
+    })
     public CommonApiResponse<VenueResponseDTO> updateVenueDetails(String venueId, UpdateVenueDetailsRequestDTO requestDTO) {
         Venue existsVenue = venueRepo.findById(venueId)
                 .orElseThrow(() -> new ResourceNotFoundException("venue with this id not found for update"));
@@ -92,6 +101,10 @@ public class VenueService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "#venueId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "'all_venues'")
+    })
     public CommonApiResponse<VenueResponseDTO> updateVenueStatus(String venueId, UpdateVenueStatusDTO requestDTO) {
         Venue existsVenue = venueRepo.findById(venueId)
                 .orElseThrow(() -> new ResourceNotFoundException("venue with this id not found for update"));
@@ -109,6 +122,7 @@ public class VenueService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "'category_' + #categoryId")
     public CommonApiResponse<List<VenueResponseDTO>> getVenuesByCurrentProvider() {
         String currentUserId = UserContext.getUserId();
 
@@ -126,6 +140,7 @@ public class VenueService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "'category_' + #categoryId")
     public CommonApiResponse<List<VenueResponseDTO>> getVenuesByCategoryId(String categoryId) {
         List<VenueResponseDTO> dtoList = venueRepo.findByCategoryId(categoryId).stream()
                 .map(this::mapToResponseDTO)
@@ -141,6 +156,7 @@ public class VenueService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "'all_venues'")
     public CommonApiResponse<List<VenueResponseDTO>> getAllVenues() {
         List<VenueResponseDTO> dtoList = venueRepo.findAll().stream()
                 .map(this::mapToResponseDTO)
@@ -156,6 +172,7 @@ public class VenueService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "#venueId")
     public CommonApiResponse<VenueResponseDTO> getVenueDetails(String venueId) {
         Venue venue = venueRepo.findById(venueId)
                 .orElseThrow(() -> new ResourceNotFoundException("venue with this id not found"));
@@ -170,6 +187,10 @@ public class VenueService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "#venueId"),
+            @CacheEvict(value = RedisCacheConfig.CACHE_VENUE_DETAILS, key = "'all_venues'")
+    })
     public String deleteVenue(String venueId) {
         Venue venue = venueRepo.findById(venueId)
                 .orElseThrow(() -> new ResourceNotFoundException("venue with this id not found"));
