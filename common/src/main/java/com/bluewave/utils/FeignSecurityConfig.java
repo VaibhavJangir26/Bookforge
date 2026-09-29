@@ -12,21 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-/**
- * =========================================================================================
- *                   INDUSTRY STANDARD FEIGN SECURITY INTERCEPTOR
- * =========================================================================================
- *
- * Automatically propagates authentication and identity headers across inter-service
- * OpenFeign HTTP calls:
- *
- * 1. Authorization Header : "Bearer <jwt-token>"
- * 2. Identity Headers     : "X-User-Id", "X-User-Name", "X-User-Roles"
- *
- * Flow:
- * Client Request -> Gateway -> Service A (reads headers) -> Feign Interceptor -> Service B (authenticates)
- * =========================================================================================
- */
 @Slf4j
 @Configuration
 public class FeignSecurityConfig {
